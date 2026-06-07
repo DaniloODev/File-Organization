@@ -1,0 +1,52 @@
+Busca por RRN:
+
+--variável global prox/ult_RRN
+
+Search(int RRN){
+	--abrir o arquivo para leitura
+	if (RRN < prox_RRN){
+		--posiciona fseek no byte offset (RRN*tamanho do registro)
+		--lê o registro
+		if (removido(RRN) == true){
+			printf("Registro não econtrado!");
+		}
+		printf("Conteúdo do registro");
+	} else {
+		printf("Registro não econtrado!");
+	}
+	--fechar arquivo
+}
+	
+	
+Remoção por RRN:
+
+--variável global prox/ult_RRN
+
+Remove (int RRN){
+	--abrir o arquivo para escrita
+	if (RRN < prox_RRN){
+		--posiciona fseek no byte offset (RRN*tamanho do registro)
+		--lê o registro
+		if (removido(RRN) == true){
+			printf("Registro não econtrado!");
+		}
+		--remove logicamente (marca como removido)
+	} else {
+		printf("Registro não econtrado!");
+	}
+	--fechar arquivo
+}
+
+
+Inserção (não precisa de RRN):
+
+InsertInto (){
+	--abrir o arquivo para escrita
+	--ler o valor do prox_RRN do registro de cabeçalho (variável global)
+	--byte offset = tam_reg + prox_RRN
+	--posiciona a posição corrente no byte offset
+	--escrever/inserir o registro
+	--incrementar o prox_RRN
+	--fechar arquivo
+}
+
