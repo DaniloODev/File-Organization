@@ -17,7 +17,7 @@ struct _cabecalho_arvb
     int topo;
     int proxRRN;
     int nroNos;
-}
+};
 
 /// @brief  Aloca memória para o cabeçalho e inicializa a estrutura com valores padrão.
 /// @return Ponteiro para o cabeçalho.
@@ -73,4 +73,48 @@ void gravaCabecalho(FILE *binFile, cabecalho *c)
     fwrite(&c->proxRRN, sizeof(int), 1, binFile);
     fwrite(&c->nroEstacoes, sizeof(int), 1, binFile);
     fwrite(&c->nroParesEstacao, sizeof(int), 1, binFile);
+}
+
+//  Daqui pra frente precisa comentar direitinho.
+// Funções do cabeçalho da árvore B: 
+cabecalho_arvb* inicializaCabecalhoArvb()
+{
+    cabecalho_arvb *c_arvb = malloc (sizeof(cabecalho_arvb)); // Aloca memória para o cabeçalho da árvore B.
+    if (c_arvb == NULL){
+        printf("Erro ao alocar memória para o cabeçalho.\n");
+        return NULL;
+    }
+    // Inicializa os campos com valores padrão.
+    c_arvb->status = '0';        // 1 Byte
+    c_arvb->noRaiz = -1;          // 4 Bytes
+    c_arvb->topo = -1;           // 4 Bytes
+    c_arvb->proxRRN = 0;         // 4 Bytes
+    c_arvb->nroNos = 0;     // 4 Bytes
+    return c_arvb;
+}
+
+
+void finalizaCabecalhoArvb(cabecalho_arvb *c_arvb){
+    free(c_arvb);
+}
+
+void atualizaCabecalhoArvb(cabecalho_arvb *c_arvb, char status, int noRaiz, int topo, int proxRRN, int nroNos){
+    c_arvb->status = status;
+    c_arvb->noRaiz = noRaiz;
+    c_arvb->topo = topo;
+    c_arvb->proxRRN = proxRRN;
+    c_arvb->nroNos = nroNos;
+}
+void gravaCabecalhoArvb(FILE *binFile, cabecalho_arvb *c_arvb)
+{
+    // Pega o inicio do arquivo, no byte 0
+    fseek(binFile, 0, SEEK_SET);
+
+    // Grava os campos do cabeçalho
+    fwrite(&c_arvb->status, sizeof(char), 1, binFile);
+    fwrite(&c_arvb->noRaiz, sizeof(int), 1, binFile);
+    fwrite(&c_arvb->topo, sizeof(int), 1, binFile);
+    fwrite(&c_arvb->proxRRN, sizeof(int), 1, binFile);
+    fwrite(&c_arvb->nroNos, sizeof(int), 1, binFile);
+
 }
