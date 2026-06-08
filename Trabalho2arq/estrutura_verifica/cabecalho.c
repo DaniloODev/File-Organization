@@ -10,6 +10,14 @@ struct _cabecalho
     int nroEstacoes;        // Qtd de estações únicas
     int nroParesEstacao;    // Qtd de pares únicos
 };
+struct _cabecalho_arvb
+{
+    char status;
+    int noRaiz;
+    int topo;
+    int proxRRN;
+    int nroNos;
+}
 
 /// @brief  Aloca memória para o cabeçalho e inicializa a estrutura com valores padrão.
 /// @return Ponteiro para o cabeçalho.
