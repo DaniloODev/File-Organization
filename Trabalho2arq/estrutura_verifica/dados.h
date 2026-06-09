@@ -19,6 +19,6 @@ typedef struct _dados
 }dados;
 
 // Função para validar se um registro atende aos criterios da busca
-int valida_registro(dados *trem, int m_campos, char nomesCampos[][50], char valoresBusca[][100]);   // Função validar registro
+int valida_registro(dados *trem, int m_campos, char **nomesCampos, char **valoresBusca);   // Função validar registro
 
 #endif

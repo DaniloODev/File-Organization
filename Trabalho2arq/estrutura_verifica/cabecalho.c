@@ -10,6 +10,7 @@ struct _cabecalho
     int nroEstacoes;        // Qtd de estações únicas
     int nroParesEstacao;    // Qtd de pares únicos
 };
+
 struct _cabecalho_arvb
 {
     char status;
@@ -25,8 +26,8 @@ cabecalho* inicializaCabecalho()
 {
     cabecalho *c = malloc (sizeof(cabecalho)); // Aloca memória para o cabeçalho.
     if (c == NULL){
-        printf("Erro ao alocar memória para o cabeçalho.\n");
-        return NULL;
+        fprintf(stderr, "Erro ao alocar memória para o cabeçalho.\n");
+        exit(EXIT_FAILURE);
     }
     // Inicializa os campos com valores padrão.
     c->status = '0';        // 1 Byte

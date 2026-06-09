@@ -11,9 +11,9 @@ typedef struct _no
   int proximo;
   int tipoNo;
   int nroChaves; 
-  int C[2];
-  int Pr[2];
-  int P[3];
-} no;
+  int C[3]; // Chaves de busca (codEstacao).
+  int Pr[3];// Ponteiros de referência para o arquivo de dados (offset do registro correspondente a cada chave).
+  int P[4]; // Ponteiros de referência (RRN) para as subárvores filhas. 
+} pagina;
 
 #endif

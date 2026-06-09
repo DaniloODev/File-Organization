@@ -83,7 +83,7 @@ FILE *abre_verifica_rbplus(char *nomeArqBin)
 /// @param n        Número de campos
 /// @param nomes    Nome do campo
 /// @param valores  Valores contidos no campo 
-void leitura_campos(int n, char nomes[][50], char valores[][100]) 
+void leitura_campos(int n, char **nomes, char **valores) 
 {
     for (int j = 0; j < n; j++)
     {

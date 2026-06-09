@@ -7,10 +7,10 @@ LIBS = -lm
 # Organização dos arquivos fonte (.c)
 MAIN = main.c
 FORNECIDAS = ./fornecidas/fornecidas.c
-AUX = ./auxiliar/auxiliares.c ./auxiliar/calcula.c
+AUX = ./auxiliar/auxiliares.c ./auxiliar/calcula.c ./auxiliar/printaEstacao.c
 PRINCIPAL = ./funcoesprincipais/select.c ./funcoesprincipais/create_table.c \
             ./funcoesprincipais/update.c ./funcoesprincipais/delete.c \
-            ./funcoesprincipais/insert_into.c
+            ./funcoesprincipais/insert_into.c ./funcoesprincipais/busca.c
 STCTVRF = ./estrutura_verifica/dados.c ./estrutura_verifica/cabecalho.c
 
 # Regra principal

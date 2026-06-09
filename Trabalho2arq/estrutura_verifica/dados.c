@@ -10,10 +10,10 @@
 /// @brief              Realiza a validação verificando se existe ou não o que está sendo buscado
 /// @param trem         Array de struct de dados
 /// @param m_campos     Números de campos
-/// @param nomesCampos  Tipo do campo
-/// @param valoresBusca Conteúdo do campo
-/// @return             Após a cascara de if, se passar em tudo ele retorna 1 = achou, retorna 0 se não achar
-int valida_registro(dados *trem, int m_campos, char nomesCampos[][50], char valoresBusca[][100])
+/// @param nomesCampos  Tipo do campo (Alterado para char**)
+/// @param valoresBusca Conteúdo do campo (Alterado para char**)
+/// @return             Após a cascata de if, se passar em tudo ele retorna 1 = achou, retorna 0 se não achar
+int valida_registro(dados *trem, int m_campos, char **nomesCampos, char **valoresBusca)
 {
     for (int j = 0; j < m_campos; j++)
     {
