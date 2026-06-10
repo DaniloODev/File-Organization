@@ -82,7 +82,7 @@ cabecalho_arvb* inicializaCabecalhoArvb()
 {
     cabecalho_arvb *c_arvb = malloc (sizeof(cabecalho_arvb)); // Aloca memória para o cabeçalho da árvore B.
     if (c_arvb == NULL){
-        printf("Erro ao alocar memória para o cabeçalho.\n");
+        fprintf(stderr, "Erro ao alocar memória para o cabeçalho.\n");
         return NULL;
     }
     // Inicializa os campos com valores padrão.

@@ -1,58 +1,99 @@
-#include "auxiliares.h"
-#include "fornecidas.h"
-#include "dados.h"
+#include "../aux/auxiliares.h"
+#include "../fornecidas/fornecidas.h"
+#include "../structs/dados.h"
 #include "select.h"
-#include "busca.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/// @brief              Abre o arquivo, percorre, se achou os registros correspondentes, printa os registros,
-///                     se não, printa que não foi encontrado.
-/// @param nomeArqBin   Nome do arquivo passado para manipulação.
+/// @brief              Abre o arquivo, percorre e printa os registros ativos.
+/// @param nomeArqBin   Nome do arquivo binário.
 void SELECT_FROM(char *nomeArqBin)
 {
     FILE *file = abre_verifica_rb(nomeArqBin);
-    dados trem;
+    if (file == NULL) return;
 
-    busca(trem, file, 0, NULL, NULL, 0, NULL, NULL, 0); // funcao: 0 para selectFrom 
+    fseek(file, 17, SEEK_SET);  // Pula o cabeçalho (17 bytes)
+
+    dados *trem = NULL;
+    int encontrou = 0;
+
+    // O TAD gerencia toda a leitura do registro físico e o avanço dos bytes do lixo
+    while ((trem = dados_le_binario(file)) != NULL)
+    {
+        // Verifica se está marcado como removido usando a interface do TAD
+        if (dados_get_removido(trem) == '1') {
+            dados_apaga(trem); // Desaloca e continua para o próximo
+            continue;
+        }
+
+        encontrou = 1;
+        printa_estacao(trem);
+
+        dados_apaga(trem); // Libera o registro após o uso
+    }
+
+    if (!encontrou)
+        printf("Registro inexistente.\n");
+
     fclose(file);
 }
 
-/// @brief                  Abre o arquivo, percorre, lista todas as N buscas com todos os resultados
-///                         correspondentes, se não encontrar, printa que não existe. 
-/// @param nomeArqBin       Nome do arquivo passado para manipulação.
-/// @param numero_buscas    Número de buscas, onde poderão ser filtrados por campos diferentes.
+/// @brief                  Abre o arquivo, percorre e lista os resultados filtrados pelas buscas.
+/// @param nomeArqBin       Nome do arquivo binário.
+/// @param numero_buscas    Número de buscas a serem realizadas.
 void SELECT_WHERE(char *nomeArqBin, int numero_buscas)
 {
     FILE *file = abre_verifica_rb(nomeArqBin);
+    if (file == NULL) return;
 
     for (int b = 0; b < numero_buscas; b++)
     {
         int m_campos;
-        scanf("%d", &m_campos); // Lê quantos campos essa busca vai ter
+        scanf("%d", &m_campos);
 
-        char **nomesCampos = malloc(m_campos * sizeof(char *));
-        char **valoresBusca = malloc(m_campos * sizeof(char *));
-        for (int j = 0; j < m_campos; j++) {
-            nomesCampos[j] = malloc(50 * sizeof(char));
-            valoresBusca[j] = malloc(100 * sizeof(char));
+        char nomesCampos[m_campos][50];
+        char valoresBusca[m_campos][100];
+
+        // Coleta os filtros da busca
+        for (int j = 0; j < m_campos; j++)
+        {
+            scanf("%s", nomesCampos[j]);
+            
+            if (strcmp(nomesCampos[j], "nomeEstacao") == 0 || strcmp(nomesCampos[j], "nomeLinha") == 0)
+                ScanQuoteString(valoresBusca[j]);
+            else 
+                scanf("%s", valoresBusca[j]); 
         }
 
-        leitura_campos(m_campos, nomesCampos, valoresBusca);
+        fseek(file, 17, SEEK_SET); // Reposiciona no início dos registros de dados para cada busca
+        
+        dados *trem = NULL;
+        int encontrouAoMenosUm = 0;
 
-        dados trem;
-        busca(trem, file, 1, valoresBusca, nomesCampos, m_campos, NULL, NULL, 0); // funcao: 1 para selectWhere 
+        while ((trem = dados_le_binario(file)) != NULL)
+        {
+            // Pula registros logicamente removidos
+            if (dados_get_removido(trem) == '1') {
+                dados_apaga(trem);
+                continue;
+            }
+
+            // A função valida_registro agora opera sobre a interface do TAD de forma segura
+            int match = valida_registro(trem, m_campos, nomesCampos, valoresBusca);
+            if (match)
+            {
+                encontrouAoMenosUm = 1;
+                printa_estacao(trem);
+            }
+            
+            dados_apaga(trem); // Libera a memória alocada por dados_le_binario
+        }        
+        
+        if (!encontrouAoMenosUm)
+            printf("Registro inexistente.\n");
 
         printf("\n");
-        // Libera a memória de cada string
-        for (int j = 0; j < m_campos; j++) {
-            free(nomesCampos[j]);
-            free(valoresBusca[j]);
-        }
-        // Libera os vetores de ponteiros
-        free(nomesCampos);
-        free(valoresBusca);
     }
     fclose(file);
 }

@@ -1,5 +1,5 @@
 #include "auxiliares.h"
-#include "fornecidas.h"
+#include "../fornecidas/fornecidas.h"
 #include <string.h>
 
 /// @brief          Serve para ler o arquivo palavra por palavra, 
@@ -36,6 +36,16 @@ int calcTam(char *str)
     tam++;
 
   return tam;
+}
+
+FILE *abre_verifica_r(char *nomeArq)
+{
+  FILE *file = fopen(nomeArq, "r");
+    if (file == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        return NULL;
+    }
+  return file;
 }
 
 /// @brief            Abre o arquivo, e efetua a verificação se foi possível abrir e a respeito da integridade.
@@ -79,11 +89,31 @@ FILE *abre_verifica_rbplus(char *nomeArqBin)
   return file;
 }
 
+FILE *abre_verifica_wb(char *nomeArqBin)
+{
+    FILE *file = fopen(nomeArqBin, "wb");
+    if (file == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        return NULL;
+    }
+  return file;
+}
+
+FILE *abre_verifica_wbplus(char *nomeArqBin)
+{
+    FILE *file = fopen(nomeArqBin, "wb+");
+    if (file == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        return NULL;
+    }
+  return file;
+}
+
 /// @brief          Faz a leitura dos campos variados
 /// @param n        Número de campos
 /// @param nomes    Nome do campo
 /// @param valores  Valores contidos no campo 
-void leitura_campos(int n, char **nomes, char **valores) 
+void leitura_campos(int n, char nomes[][50], char valores[][100]) 
 {
     for (int j = 0; j < n; j++)
     {
@@ -95,4 +125,28 @@ void leitura_campos(int n, char **nomes, char **valores)
         else
             scanf("%s", valores[j]); 
     }
+}
+
+/// @brief      Recebe a estação por ponteiro e printa os seus dados.
+/// @param trem Ponteiro para a estação encapsulada.
+void printa_estacao(dados *trem)
+{
+    // Extrai os campos necessários
+    int codEstacao = dados_get_codEstacao(trem);
+    char *nomeEstacao = dados_get_nomeEstacao(trem);
+    int codLinha = dados_get_codLinha(trem);
+    char *nomeLinha = dados_get_nomeLinha(trem);
+    int codProxEstacao = dados_get_codProxEstacao(trem);
+    int distProxEstacao = dados_get_distProxEstacao(trem);
+    int codLinhaIntegra = dados_get_codLinhaIntegra(trem);
+    int codEstIntegra = dados_get_codEstIntegra(trem);
+
+    printf("%d %s ", codEstacao, nomeEstacao ? nomeEstacao : "NULO");
+    
+    if (codLinha != -1) printf("%d ", codLinha); else printf("NULO ");
+    if (nomeLinha != NULL) printf("%s ", nomeLinha); else printf("NULO ");
+    if (codProxEstacao != -1) printf("%d ", codProxEstacao); else printf("NULO ");
+    if (distProxEstacao != -1) printf("%d ", distProxEstacao); else printf("NULO ");
+    if (codLinhaIntegra != -1) printf("%d ", codLinhaIntegra); else printf("NULO ");
+    if (codEstIntegra != -1) printf("%d\n", codEstIntegra); else printf("NULO\n");
 }
