@@ -1,26 +1,31 @@
 #include "delete.h"
-#include "dados.h"
-#include "fornecidas.h"
-#include "auxiliares.h"
-#include "calcula.h"
+#include "../structs/dados.h"
+#include "../fornecidas/fornecidas.h"
+#include "./aux/auxiliares.h"
+#include "./aux/calcula.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/// @brief              Exclui de acordo com o conteúdo desejado, do campo selecionado.
-/// @param nomeArqBin   Nome do arquivo a ser manipulado.
-/// @param n_buscas     Número de buscas a serem efetuadas.
+/// @brief              Exclui registros logicamente de acordo com filtros de busca,
+///                     adicionando-os na pilha de remoção.
+/// @param nomeArqBin   Nome do arquivo binário a ser manipulado.
+/// @param n_buscas     Número de buscas/iterações de remoção a serem efetuadas.
 void DELETE_WHERE(char *nomeArqBin, int n_buscas)
 {
-    FILE *binFile = abre_verifica_rbplus(nomeArqBin);   // Verifica integridade do arquivo
+    FILE *binFile = abre_verifica_rbplus(nomeArqBin);
+    if (binFile == NULL) return;
 
     int topo, proxRRN, nroEstacoes, nroParesEstacao;
+    
+    // Pula o byte do status para ler os metadados do cabeçalho
+    fseek(binFile, 1, SEEK_SET);
     fread(&topo, sizeof(int), 1, binFile);
     fread(&proxRRN, sizeof(int), 1, binFile);
     fread(&nroEstacoes, sizeof(int), 1, binFile);
     fread(&nroParesEstacao, sizeof(int), 1, binFile);
 
-    // Status inconsistente durante a alteração
+    // Altera o status do cabeçalho para inconsistente no início da operação
     char status = '0';
     fseek(binFile, 0, SEEK_SET);
     fwrite(&status, sizeof(char), 1, binFile);
@@ -33,69 +38,48 @@ void DELETE_WHERE(char *nomeArqBin, int n_buscas)
         char nomesCampos[m_campos][50];
         char valoresBusca[m_campos][100];
 
-        leitura_campos(m_campos, nomesCampos, valoresBusca);   // Leitura dos campos
+        leitura_campos(m_campos, nomesCampos, valoresBusca);
 
-        // SEMPRE volte para o início dos registros e zere o RRN para cada busca
+        // SEMPRE volta para o início dos registros e zera o RRN para cada nova busca
         fseek(binFile, 17, SEEK_SET); 
-        dados trem;
+        dados *trem = NULL;
         int rrn = 0; 
 
-        while (fread(&trem.removido, sizeof(char), 1, binFile))
+        while ((trem = dados_le_binario(binFile)) != NULL)
         {
+            // Calcula o byteoffset exato onde este registro começa no arquivo binário
             long offset_registro_atual = 17 + (long)(rrn * 80);
 
-            // Leitura dos campos fixos
-            fread(&trem.proxRemovido, sizeof(int), 1, binFile);
-            fread(&trem.codEstacao, sizeof(int), 1, binFile);
-            fread(&trem.codLinha, sizeof(int), 1, binFile);
-            fread(&trem.codProxEstacao, sizeof(int), 1, binFile);
-            fread(&trem.distProxEstacao, sizeof(int), 1, binFile);
-            fread(&trem.codLinhaIntegra, sizeof(int), 1, binFile);
-            fread(&trem.codEstIntegra, sizeof(int), 1, binFile);
-            
-            // Leitura dos campos variáveis
-            fread(&trem.tamNomeEstacao, sizeof(int), 1, binFile);
-            trem.nomeEstacao = malloc(trem.tamNomeEstacao + 1);
-            fread(trem.nomeEstacao, sizeof(char), trem.tamNomeEstacao, binFile);
-            trem.nomeEstacao[trem.tamNomeEstacao] = '\0';
-
-            fread(&trem.tamNomeLinha, sizeof(int), 1, binFile);
-            if (trem.tamNomeLinha > 0) {
-                trem.nomeLinha = malloc(trem.tamNomeLinha + 1);
-                fread(trem.nomeLinha, sizeof(char), trem.tamNomeLinha, binFile);
-                trem.nomeLinha[trem.tamNomeLinha] = '\0';
-            } else {
-                trem.nomeLinha = NULL;
-            }
-
-            // Pula o lixo para terminar os 80 bytes
-            int bytesLidos = 37 + trem.tamNomeEstacao + trem.tamNomeLinha;
-            fseek(binFile, 80 - bytesLidos, SEEK_CUR);
-
-            if (trem.removido == '0') // Só tenta deletar se não estiver deletado
+            // Só tenta deletar se o registro ainda estiver ativo
+            if (dados_get_removido(trem) == '0') 
             {
-                if (valida_registro(&trem, m_campos, nomesCampos, valoresBusca))
+                // Valida o match com os critérios da busca usando
+                if (valida_registro(trem, m_campos, nomesCampos, valoresBusca))
                 {
                     char flag_removido = '1';
-                    int prox_na_lista = topo; // O registro atual aponta para onde o topo apontava
+                    int prox_na_lista = topo; // O registro atual passa a apontar para o antigo topo
 
+                    // Volta o ponteiro do arquivo para o início deste registro específico
                     fseek(binFile, offset_registro_atual, SEEK_SET);
+                    
+                    // Escreve a flag de removido e o proxRRN do topo
                     fwrite(&flag_removido, sizeof(char), 1, binFile);
                     fwrite(&prox_na_lista, sizeof(int), 1, binFile);
 
-                    topo = rrn; // Atualiza topo para o rrn atual, que foi o ultimo a ser deletado
+                    topo = rrn; // O topo da pilha passa a ser o RRN deste registro recém excluído
                     
-                    // Garante que o ponteiro volte para o fim do registro para a próxima leitura do while
+                    // Força o ponteiro do arquivo a voltar para o final do registro
                     fseek(binFile, offset_registro_atual + 80, SEEK_SET);
                 }
             }
 
-            if(trem.nomeEstacao) free(trem.nomeEstacao);
-            if(trem.nomeLinha) free(trem.nomeLinha);
+            // Libera a memória alocada para o registro atual
+            dados_apaga(trem);
             rrn++;
         }
     }
 
+    // Recalcula e grava o cabeçalho
     recalcula_e_grava_cabecalho(binFile, topo, proxRRN);
 
     fclose(binFile);

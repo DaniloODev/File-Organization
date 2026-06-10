@@ -1,77 +1,36 @@
-#include "auxiliares.h"
-#include "fornecidas.h"
-#include "dados.h"
+#include "../aux/auxiliares.h"
+#include "../fornecidas/fornecidas.h"
+#include "../structs/dados.h"
 #include "select.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/// @brief      Recebe a estação e printa ela.
-/// @param trem Estação que foi encontrada e será printada.
-static void printa_estacao(dados trem)
-{
-    printf("%d %s ", trem.codEstacao, trem.nomeEstacao);
-    if (trem.codLinha != -1) printf("%d ", trem.codLinha); else printf("NULO ");
-    if (trem.tamNomeLinha > 0 && trem.nomeLinha != NULL) printf("%s ", trem.nomeLinha); else printf("NULO ");
-    if (trem.codProxEstacao != -1) printf("%d ", trem.codProxEstacao); else printf("NULO ");
-    if (trem.distProxEstacao != -1) printf("%d ", trem.distProxEstacao); else printf("NULO ");
-    if (trem.codLinhaIntegra != -1) printf("%d ", trem.codLinhaIntegra); else printf("NULO ");
-    if (trem.codEstIntegra != -1) printf("%d\n", trem.codEstIntegra); else printf("NULO\n");
-}
-
-/// @brief              Abre o arquivo, percorre, se achou os registros correspondentes, printa os registros,
-///                     se não, printa que não foi encontrado.
-/// @param nomeArqBin   Nome do arquivo passado para manipulação.
+/// @brief              Abre o arquivo, percorre e printa os registros ativos.
+/// @param nomeArqBin   Nome do arquivo binário.
 void SELECT_FROM(char *nomeArqBin)
 {
     FILE *file = abre_verifica_rb(nomeArqBin);
+    if (file == NULL) return;
 
-    fseek(file, 17, SEEK_SET);  // Pula o cabeçalho (17 bytes) para chegar nos registros de dados
+    fseek(file, 17, SEEK_SET);  // Pula o cabeçalho (17 bytes)
 
-    dados trem;
+    dados *trem = NULL;
     int encontrou = 0;
 
-    // Enquanto conseguir ler o campo removido, que é o primeiro de qualquer registro:
-    while (fread(&trem.removido, sizeof(char), 1, file))
+    // O TAD gerencia toda a leitura do registro físico e o avanço dos bytes do lixo
+    while ((trem = dados_le_binario(file)) != NULL)
     {
-        fread(&trem.proxRemovido, sizeof(int), 1, file);
-        fread(&trem.codEstacao, sizeof(int), 1, file);
-        fread(&trem.codLinha, sizeof(int), 1, file);
-        fread(&trem.codProxEstacao, sizeof(int), 1, file);
-        fread(&trem.distProxEstacao, sizeof(int), 1, file);
-        fread(&trem.codLinhaIntegra, sizeof(int), 1, file);
-        fread(&trem.codEstIntegra, sizeof(int), 1, file);
-        
-        // Leitura do nome da estação
-        fread(&trem.tamNomeEstacao, sizeof(int), 1, file);
-        trem.nomeEstacao = malloc((trem.tamNomeEstacao + 1) * sizeof(char));
-        fread(trem.nomeEstacao, sizeof(char), trem.tamNomeEstacao, file);
-        trem.nomeEstacao[trem.tamNomeEstacao] = '\0';
-
-        // Leitura do nome da linha
-        fread(&trem.tamNomeLinha, sizeof(int), 1, file);
-        if (trem.tamNomeLinha > 0) {
-            trem.nomeLinha = malloc((trem.tamNomeLinha + 1) * sizeof(char));
-            fread(trem.nomeLinha, sizeof(char), trem.tamNomeLinha, file);
-            trem.nomeLinha[trem.tamNomeLinha] = '\0';
-        } else trem.nomeLinha = NULL;
-
-        // Pula o lixo $ até completar os 80 bytes do registro (37 bytes fixos + tamanhos das strings)
-        int bytesLidos = 37 + trem.tamNomeEstacao + trem.tamNomeLinha;
-        fseek(file, 80 - bytesLidos, SEEK_CUR);
-
-        if (trem.removido == '1') {   // Se estiver removido, limpa a memória e pula para o próximo
-            if (trem.nomeEstacao != NULL) free(trem.nomeEstacao);
-            if (trem.nomeLinha != NULL) free(trem.nomeLinha);
+        // Verifica se está marcado como removido usando a interface do TAD
+        if (dados_get_removido(trem) == '1') {
+            dados_apaga(trem); // Desaloca e continua para o próximo
             continue;
         }
 
         encontrou = 1;
-        printa_estacao(trem);   // Mostrando as estações encontradas
+        printa_estacao(trem);
 
-        // Desalocando a memória préviamente alocada
-        if (trem.nomeEstacao != NULL) free(trem.nomeEstacao);
-        if (trem.nomeLinha != NULL) free(trem.nomeLinha);
+        dados_apaga(trem); // Libera o registro após o uso
     }
 
     if (!encontrou)
@@ -80,83 +39,57 @@ void SELECT_FROM(char *nomeArqBin)
     fclose(file);
 }
 
-/// @brief                  Abre o arquivo, percorre, lista todas as N buscas com todos os resultados
-///                         correspondentes, se não encontrar, printa que não existe. 
-/// @param nomeArqBin       Nome do arquivo passado para manipulação.
-/// @param numero_buscas    Número de buscas, onde poderão ser filtrados por campos diferentes.
+/// @brief                  Abre o arquivo, percorre e lista os resultados filtrados pelas buscas.
+/// @param nomeArqBin       Nome do arquivo binário.
+/// @param numero_buscas    Número de buscas a serem realizadas.
 void SELECT_WHERE(char *nomeArqBin, int numero_buscas)
 {
     FILE *file = abre_verifica_rb(nomeArqBin);
+    if (file == NULL) return;
 
     for (int b = 0; b < numero_buscas; b++)
     {
         int m_campos;
-        scanf("%d", &m_campos); // Lê quantos campos essa busca vai ter
+        scanf("%d", &m_campos);
 
         char nomesCampos[m_campos][50];
         char valoresBusca[m_campos][100];
 
-        // Lê os pares nomeCampo valorCampo
+        // Coleta os filtros da busca
         for (int j = 0; j < m_campos; j++)
         {
             scanf("%s", nomesCampos[j]);
             
-            //Strings usam ScanQuoteString, números e nulo usam scanf normal 
             if (strcmp(nomesCampos[j], "nomeEstacao") == 0 || strcmp(nomesCampos[j], "nomeLinha") == 0)
                 ScanQuoteString(valoresBusca[j]);
-            
-            else scanf("%s", valoresBusca[j]); 
+            else 
+                scanf("%s", valoresBusca[j]); 
         }
 
-        fseek(file, 17, SEEK_SET); // Volta pro início dos dados a cada nova busca
-        dados trem;
+        fseek(file, 17, SEEK_SET); // Reposiciona no início dos registros de dados para cada busca
+        
+        dados *trem = NULL;
         int encontrouAoMenosUm = 0;
 
-        while (fread(&trem.removido, sizeof(char), 1, file))
+        while ((trem = dados_le_binario(file)) != NULL)
         {
-            // Leitura fixa
-            fread(&trem.proxRemovido, sizeof(int), 1, file);
-            fread(&trem.codEstacao, sizeof(int), 1, file);
-            fread(&trem.codLinha, sizeof(int), 1, file);
-            fread(&trem.codProxEstacao, sizeof(int), 1, file);
-            fread(&trem.distProxEstacao, sizeof(int), 1, file);
-            fread(&trem.codLinhaIntegra, sizeof(int), 1, file);
-            fread(&trem.codEstIntegra, sizeof(int), 1, file);
-            
-            // Leitura variável
-            fread(&trem.tamNomeEstacao, sizeof(int), 1, file);
-            trem.nomeEstacao = malloc(trem.tamNomeEstacao + 1);
-            fread(trem.nomeEstacao, sizeof(char), trem.tamNomeEstacao, file);
-            trem.nomeEstacao[trem.tamNomeEstacao] = '\0';
-
-            fread(&trem.tamNomeLinha, sizeof(int), 1, file);
-            if (trem.tamNomeLinha > 0) {
-                trem.nomeLinha = malloc(trem.tamNomeLinha + 1);
-                fread(trem.nomeLinha, sizeof(char), trem.tamNomeLinha, file);
-                trem.nomeLinha[trem.tamNomeLinha] = '\0';
-            } else trem.nomeLinha = NULL;
-
-            // Pula o lixo $ até completar os 80 bytes do registro (37 bytes fixos + tamanhos das strings)
-            int bytesLidos = 37 + trem.tamNomeEstacao + trem.tamNomeLinha;
-            fseek(file, 80 - bytesLidos, SEEK_CUR);
-
-            if (trem.removido == '1') {
-                free(trem.nomeEstacao);
-                if (trem.nomeLinha) free(trem.nomeLinha);
+            // Pula registros logicamente removidos
+            if (dados_get_removido(trem) == '1') {
+                dados_apaga(trem);
                 continue;
             }
 
-            int match = valida_registro(&trem, m_campos, nomesCampos, valoresBusca); // Assume que o registro serve, a menos que falhe em um dos critérios.
+            // A função valida_registro agora opera sobre a interface do TAD de forma segura
+            int match = valida_registro(trem, m_campos, nomesCampos, valoresBusca);
             if (match)
             {
                 encontrouAoMenosUm = 1;
-                printa_estacao(trem);   // Mostrando as estações encontradas
-
+                printa_estacao(trem);
             }
-            free(trem.nomeEstacao);
-            if (trem.nomeLinha)
-                free(trem.nomeLinha);
+            
+            dados_apaga(trem); // Libera a memória alocada por dados_le_binario
         }        
+        
         if (!encontrouAoMenosUm)
             printf("Registro inexistente.\n");
 

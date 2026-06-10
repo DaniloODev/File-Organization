@@ -1,124 +1,100 @@
 #include "delete.h"
-#include "dados.h"
-#include "fornecidas.h"
-#include "auxiliares.h"
-#include "calcula.h"
-#include "cabecalho.h"
+#include "../structs/dados.h"
+#include "../fornecidas/fornecidas.h"
+#include "./aux/auxiliares.h"
+#include "./aux/calcula.h"
+#include "../structs/cabecalho.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/// @brief              Insere um novo registro, insere na posição do RRNtopo 
-///                     caso topo != -1, se não insere no proxRRN, e atualiza o topo
-/// @param nomeArqBin   Nome do arquivo a ser modificado
-/// @param n_insercoes  Número de inserções 
+/// @brief              Insere um novo registro, reaproveitando espaços logicamente
+///                     removidos (pilha) ou inserindo no fim do arquivo (proxRRN).
+/// @param nomeArqBin   Nome do arquivo binário a ser modificado
+/// @param n_insercoes  Número de inserções a serem feitas
 void INSERT_INTO(char *nomeArqBin, int n_insercoes)
 {
-    FILE *file = abre_verifica_rbplus(nomeArqBin);  // Abre e verifica integridade do arquivo
+    FILE *file = abre_verifica_rbplus(nomeArqBin);
+    if (file == NULL) return;
  
     int topo, proxRRN, nroEstacoes, nroPares;
     
-    fread(&topo, sizeof(int), 1, file);             // Leitura dos dados que serão inseridos
+    fseek(file, 1, SEEK_SET);
+    fread(&topo, sizeof(int), 1, file);             
     fread(&proxRRN, sizeof(int), 1, file);
     fread(&nroEstacoes, sizeof(int), 1, file);
     fread(&nroPares, sizeof(int), 1, file);
 
-    char status = '0';                              // Muda o cabeçalho para inconsistente
+    // Muda o status do cabeçalho para inconsistente no início da operação
+    char status = '0';
     fseek(file, 0, SEEK_SET);
     fwrite(&status, sizeof(char), 1, file);
 
     for (int b = 0; b < n_insercoes; b++)
     {
-        dados trem;
-        trem.removido = '0';
-        trem.proxRemovido = -1; 
+        dados *reg = dados_cria(); // Aloca um novo registro
         
         char bufferNulo[50]; 
+        int codEstacao, codLinha, codProxEstacao, distProxEstacao, codLinhaIntegra, codEstIntegra;
 
-        scanf("%d", &trem.codEstacao);
+        scanf("%d", &codEstacao);
 
         char bufferNomeEst[200];
         ScanQuoteString(bufferNomeEst);
+        dados_set_nomeEstacao(reg, bufferNomeEst);
 
         scanf("%s", bufferNulo);
-        trem.codLinha = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
+        codLinha = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
 
         char bufferNomeLinha[200];
         ScanQuoteString(bufferNomeLinha);
+        dados_set_nomeLinha(reg, (strcmp(bufferNomeLinha, "") == 0) ? "" : bufferNomeLinha);
 
         scanf("%s", bufferNulo);
-        trem.codProxEstacao = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
+        codProxEstacao = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
 
         scanf("%s", bufferNulo);
-        trem.distProxEstacao = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
+        distProxEstacao = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
 
         scanf("%s", bufferNulo);
-        trem.codLinhaIntegra = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
+        codLinhaIntegra = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
 
         scanf("%s", bufferNulo);
-        trem.codEstIntegra = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
+        codEstIntegra = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
 
-        if (strcmp(bufferNomeEst, "") == 0) {
-            trem.tamNomeEstacao = 0;
-            trem.nomeEstacao = NULL;
-        } else {
-            trem.tamNomeEstacao = strlen(bufferNomeEst);
-            trem.nomeEstacao = malloc(trem.tamNomeEstacao + 1);
-            strcpy(trem.nomeEstacao, bufferNomeEst);
-        }
-
-        if (strcmp(bufferNomeLinha, "") == 0) {
-            trem.tamNomeLinha = 0;
-            trem.nomeLinha = NULL;
-        } else {
-            trem.tamNomeLinha = strlen(bufferNomeLinha);
-            trem.nomeLinha = malloc(trem.tamNomeLinha + 1);
-            strcpy(trem.nomeLinha, bufferNomeLinha);
-        }
+        // Define os campos de tamanho fixo obtidos
+        dados_set_campos_fixos(reg, '0', -1, codEstacao, codLinha, codProxEstacao, distProxEstacao, codLinhaIntegra, codEstIntegra);
 
         long offset_escrita;
 
+        // Verifica se há espaço na pilha de removidos para reaproveitar
         if (topo != -1) {
-            offset_escrita = 17 + (long)(topo * 80);    // Calculando o Byteoffset da escrita,
-                                                        // caso haja topo
-            fseek(file, offset_escrita + 1, SEEK_SET); 
-            int rrn_proximo_removido;
-            fread(&rrn_proximo_removido, sizeof(int), 1, file);
+            // Reaproveita o espaço do topo da pilha
+            offset_escrita = 17 + (long)(topo * 80);    
             
-            topo = rrn_proximo_removido;
+            // Vai até a posição para ler qual é o PRÓXIMO RRN da pilha antes de sobrescrever
+            fseek(file, offset_escrita, SEEK_SET);
+            dados *reg_removido = dados_le_binario(file);
+            
+            // Atualiza o topo da lista encadeada com o valor que estava guardado lá
+            topo = dados_get_proxRemovido(reg_removido);
+            
+            dados_apaga(reg_removido); // Libera o registro temporário lido
         } else {
-            offset_escrita = 17 + (long)(proxRRN * 80); // Calculando o Byteoffset da escrita,
-            proxRRN++;                                  // no final do arquivo
+            // Não há removidos, insere no fim do arquivo (proxRRN)
+            offset_escrita = 17 + (long)(proxRRN * 80); 
+            proxRRN++;                                  
         }
+
+        // Move o ponteiro do arquivo para o local correto determinado e grava o registro
         fseek(file, offset_escrita, SEEK_SET);
+        dados_grava_binario(reg, file);
 
-        fwrite(&trem.removido, sizeof(char), 1, file);  // Escrevendo o novo registro
-        fwrite(&trem.proxRemovido, sizeof(int), 1, file);
-        fwrite(&trem.codEstacao, sizeof(int), 1, file);
-        fwrite(&trem.codLinha, sizeof(int), 1, file);
-        fwrite(&trem.codProxEstacao, sizeof(int), 1, file);
-        fwrite(&trem.distProxEstacao, sizeof(int), 1, file);
-        fwrite(&trem.codLinhaIntegra, sizeof(int), 1, file);
-        fwrite(&trem.codEstIntegra, sizeof(int), 1, file);
-        
-        fwrite(&trem.tamNomeEstacao, sizeof(int), 1, file);
-        if (trem.tamNomeEstacao > 0) fwrite(trem.nomeEstacao, sizeof(char), trem.tamNomeEstacao, file);
-        
-        fwrite(&trem.tamNomeLinha, sizeof(int), 1, file);
-        if (trem.tamNomeLinha > 0) fwrite(trem.nomeLinha, sizeof(char), trem.tamNomeLinha, file);
-
-        // Inserindo o lixo $$$
-        int bytesEscritos = 37 + trem.tamNomeEstacao + trem.tamNomeLinha;
-        char lixo = '$';
-        for (int k = 0; k < (80 - bytesEscritos); k++) {
-            fwrite(&lixo, sizeof(char), 1, file);
-        }
-
-        if (trem.nomeEstacao) free(trem.nomeEstacao);   // Desalocando memória préviamente alocada
-        if (trem.nomeLinha) free(trem.nomeLinha);
+        dados_apaga(reg); // Libera a memória do registro inserido
     }
 
-    recalcula_e_grava_cabecalho(file, topo, proxRRN);   // Atualizando cabeçalho
+    // Recalcula e grava o cabeçalho
+    recalcula_e_grava_cabecalho(file, topo, proxRRN);   
 
     fclose(file);
     BinarioNaTela(nomeArqBin);
