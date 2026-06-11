@@ -1,19 +1,12 @@
+#ifndef ARVORE_B_H
+#define ARVORE_B_H
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "cabecalho_arvb.h"
 
-#ifndef ARVORE_BH
-#define ARVORE_BH
+typedef struct _no pagina;
 
-typedef struct _no
-{
-  char removido;
-  int proximo;
-  int tipoNo;
-  int nroChaves; 
-  int C[3]; // Chaves de busca (codEstacao).
-  int Pr[3];// Ponteiros de referência para o arquivo de dados (offset do registro correspondente a cada chave).
-  int P[4]; // Ponteiros de referência (RRN) para as subárvores filhas. 
-} pagina;
+long busca_arvore_b(FILE *arq_indice, int rrn_atual, int chave_busca);
+void insere_arvore_b(FILE *arq_indice, cabecalho_arvb *cab, int chave, long byte_offset);
 
 #endif
