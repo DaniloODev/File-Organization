@@ -87,4 +87,3 @@ void setNoRaizArvb(cabecalho_arvb *c_arvb, int noRaiz) { c_arvb->noRaiz = noRaiz
 void setProxRRNArvb(cabecalho_arvb *c_arvb, int proxRRN) { c_arvb->proxRRN = proxRRN; }
 void setNroNosArvb(cabecalho_arvb *c_arvb, int nroNos) { c_arvb->nroNos = nroNos; }
 void setStatusArvb(cabecalho_arvb *c_arvb, char status) { c_arvb->status = status; }
-void setTopoArvb(cabecalho_arvb *c_arvb, int topo) { c_arvb->topo = topo; }

@@ -3,6 +3,7 @@
 #include "../fornecidas/fornecidas.h"
 #include "./aux/auxiliares.h"
 #include "./aux/calcula.h"
+#include "./structs/arvore_b.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,8 +11,9 @@
 /// @brief              Exclui registros logicamente de acordo com filtros de busca,
 ///                     adicionando-os na pilha de remoção.
 /// @param nomeArqBin   Nome do arquivo binário a ser manipulado.
+/// @param nomeArqArvoreB Nome do arquivo da árvore B a ser manipulado.
 /// @param n_buscas     Número de buscas/iterações de remoção a serem efetuadas.
-void DELETE_WHERE(char *nomeArqBin, int n_buscas)
+void DELETE_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int n_buscas)
 {
     FILE *binFile = abre_verifica_rbplus(nomeArqBin);
     if (binFile == NULL) return;
@@ -32,6 +34,7 @@ void DELETE_WHERE(char *nomeArqBin, int n_buscas)
 
     for (int b = 0; b < n_buscas; b++)
     {
+        int indice_codEstacao = -1;
         int m_campos;
         scanf("%d", &m_campos);
 
@@ -40,19 +43,78 @@ void DELETE_WHERE(char *nomeArqBin, int n_buscas)
 
         leitura_campos(m_campos, nomesCampos, valoresBusca);
 
-        // SEMPRE volta para o início dos registros e zera o RRN para cada nova busca
-        fseek(binFile, 17, SEEK_SET); 
-        dados *trem = NULL;
-        int rrn = 0; 
+        for (int j = 0; j < m_campos; j++) {
+            if (strcmp(nomesCampos[j], "codEstacao") == 0) {
+                indice_codEstacao = j; 
+            }
+        }
+        if(indice_codEstacao != -1 && nomeArqArvoreB != NULL){
+            FILE *file_arvb = abre_verifica_rbplus(nomeArqArvoreB);
+            if(file_arvb == NULL) continue;
 
-        while ((trem = dados_le_binario(binFile)) != NULL)
-        {
-            // Calcula o byteoffset exato onde este registro começa no arquivo binário
-            long offset_registro_atual = 17 + (long)(rrn * 80);
+            cabecalho_arvb *cab_arvb = leCabecalhoArvb(file_arvb);
 
-            // Só tenta deletar se o registro ainda estiver ativo
-            if (dados_get_removido(trem) == '0') 
+            setStatusArvb(cab_arvb, '0');
+            escreveCabecalhoArvb(file_arvb, cab_arvb);
+
+            int chave_procurada = atoi(valoresBusca[indice_codEstacao]);
+            
+            long offset = busca_arvore_b(file_arvb, getNoRaizArvb(cab_arvb), chave_procurada);
+
+            if (offset != -1) {
+                fseek(binFile, offset, SEEK_SET);
+                dados *trem = dados_le_binario(binFile);
+                if(trem != NULL){
+                    if(dados_get_removido(trem) == '0' && valida_registro(trem, m_campos, nomesCampos, valoresBusca)){
+                        char flag_removido = '1';
+                        int prox_na_lista = topo;
+                        int rrn_excluido = (int)((offset - 17) / 80);
+                        
+                        fseek(binFile, offset, SEEK_SET);
+                        fwrite(&flag_removido, sizeof(char), 1, binFile);
+                        fwrite(&prox_na_lista, sizeof(int), 1, binFile);
+                        topo = rrn_excluido;
+                        remover_arvore_b(file_arvb, cab_arvb, chave_procurada);
+                    }
+                    dados_apaga(trem);
+                }
+            }
+            
+            setStatusArvb(cab_arvb, '1');
+            escreveCabecalhoArvb(file_arvb, cab_arvb);
+            
+            fclose(file_arvb);
+            
+            // IMPORTANTE: Como leCabecalhoArvb alocou memória com malloc, precisamos liberar!
+            finalizaCabecalhoArvb(cab_arvb);
+        } else {
+            // SEMPRE volta para o início dos registros e zera o RRN para cada nova busca
+            fseek(binFile, 17, SEEK_SET); 
+            dados *trem = NULL;
+            int rrn = 0; 
+
+            FILE *file_arvb = NULL;
+            
+            cabecalho_arvb *cab_arvb = NULL;
+
+           if (nomeArqArvoreB != NULL) {
+                file_arvb = abre_verifica_rbplus(nomeArqArvoreB);
+                
+                if (file_arvb != NULL) {
+                    cab_arvb = leCabecalhoArvb(file_arvb);
+                    setStatusArvb(cab_arvb, '0');
+                    escreveCabecalhoArvb(file_arvb, cab_arvb);
+                }
+            }
+
+            while ((trem = dados_le_binario(binFile)) != NULL)
             {
+                // Calcula o byteoffset exato onde este registro começa no arquivo binário
+                long offset_registro_atual = 17 + (long)(rrn * 80);
+
+                // Só tenta deletar se o registro ainda estiver ativo
+                if (dados_get_removido(trem) == '0') 
+                {
                 // Valida o match com os critérios da busca usando
                 if (valida_registro(trem, m_campos, nomesCampos, valoresBusca))
                 {
@@ -72,16 +134,18 @@ void DELETE_WHERE(char *nomeArqBin, int n_buscas)
                     fseek(binFile, offset_registro_atual + 80, SEEK_SET);
                 }
             }
-
             // Libera a memória alocada para o registro atual
             dados_apaga(trem);
             rrn++;
         }
     }
-
-    // Recalcula e grava o cabeçalho
+    }
+        
     recalcula_e_grava_cabecalho(binFile, topo, proxRRN);
-
     fclose(binFile);
+
     BinarioNaTela(nomeArqBin);
+    if(nomeArqArvoreB != NULL){
+        BinarioNaTela(nomeArqArvoreB);
+    }
 }

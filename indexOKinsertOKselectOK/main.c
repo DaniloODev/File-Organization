@@ -38,7 +38,7 @@ int main()
         case 4:
             scanf("%s", arqBin);
             scanf("%d", &n);
-            DELETE_WHERE(arqBin, NULL, n);
+            DELETE_WHERE(arqBin, n);
             break;
         case 5:
             scanf("%s", arqBin);
@@ -62,10 +62,6 @@ int main()
         case 9:
             scanf("%s %s %d", arqBin, arqBtree, &n);
             INSERT_INTO(arqBin, arqBtree, n);
-            break;
-        case 10: 
-            scanf("%s %s %d", arqBin, arqBtree, &n);
-            DELETE_WHERE(arqBin, arqBtree, n);
             break;
         default:
             break;

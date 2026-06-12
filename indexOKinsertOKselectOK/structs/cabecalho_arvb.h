@@ -25,6 +25,5 @@ void setNoRaizArvb(cabecalho_arvb *c_arvb, int noRaiz);
 void setProxRRNArvb(cabecalho_arvb *c_arvb, int proxRRN);
 void setNroNosArvb(cabecalho_arvb *c_arvb, int nroNos);
 void setStatusArvb(cabecalho_arvb *c_arvb, char status);
-void setTopoArvb(cabecalho_arvb *c_arvb, int topo);
 
 #endif

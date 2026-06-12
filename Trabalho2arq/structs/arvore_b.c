@@ -10,13 +10,14 @@ struct _no {
     int C[3];         // 12 Bytes (Chaves de busca: codEstacao)
     int Pr[3];        // 12 Bytes (Offsets correspondentes no arquivo de dados)
     int P[4];         // 16 Bytes (Ponteiros RRN para subárvores)
-}; // Tamanho total exato: 53 Bytes
+};                    // Tamanho total: 53 Bytes
 
-// Inicializa uma página em memória com valores padrão vazios (-1)
+/// @brief Inicializa uma página em memória com valores padrão
+/// @param no Ponteiro para a página a ser inicializada
 void inicializa_no_vazio(pagina *no) {
     no->removido = '0';
     no->proximo = -1;
-    no->tipoNo = -1; // Folha por padrão
+    no->tipoNo = -1;
     no->nroChaves = 0;
     for (int i = 0; i < 3; i++) {
         no->C[i] = -1;
@@ -27,7 +28,10 @@ void inicializa_no_vazio(pagina *no) {
     }
 }
 
-// Lê uma página do arquivo de índices a partir do RRN informado
+/// @brief Lê uma página do arquivo de índices a partir do RRN informado
+/// @param arq_indice Ponteiro para o arquivo de índices
+/// @param rrn RRN da página a ser lida
+/// @param no Ponteiro para a página a ser lida
 void le_no(FILE *arq_indice, int rrn, pagina *no) {
     long offset_pagina = 17 + ((long)rrn * 53);
     fseek(arq_indice, offset_pagina, SEEK_SET);
@@ -42,7 +46,10 @@ void le_no(FILE *arq_indice, int rrn, pagina *no) {
     fread(no->P, sizeof(int), 4, arq_indice);
 }
 
-// Escreve/Atualiza uma página no arquivo de índices
+/// @brief Escreve/Atualiza uma página no arquivo de índices
+/// @param arq_indice Ponteiro para o arquivo de índices
+/// @param rrn RRN da página a ser escrita
+/// @param no Ponteiro para a página a ser escrita
 void escreve_no(FILE *arq_indice, int rrn, pagina *no) {
     long offset_pagina = 17 + ((long)rrn * 53);
     fseek(arq_indice, offset_pagina, SEEK_SET);
@@ -57,7 +64,11 @@ void escreve_no(FILE *arq_indice, int rrn, pagina *no) {
     fwrite(no->P, sizeof(int), 4, arq_indice);
 }
 
-// Função de Busca conforme o teu protótipo original
+/// @brief Função de Busca na Árvore B
+/// @param arq_indice Ponteiro para o arquivo de índices
+/// @param rrn_atual RRN da página atual
+/// @param chave_busca Chave a ser buscada
+/// @return Byte offset no arquivo de dados ou -1 se não encontrada
 long busca_arvore_b(FILE *arq_indice, int rrn_atual, int chave_busca) {
     if (rrn_atual == -1) {
         return -1; // Chave não encontrada
@@ -84,22 +95,31 @@ long busca_arvore_b(FILE *arq_indice, int rrn_atual, int chave_busca) {
     return busca_arvore_b(arq_indice, no.P[i], chave_busca);
 }
 
-// Função auxiliar recursiva para inserção com tratamento de split
+/// @brief Função auxiliar recursiva para inserção com tratamento de split
+/// @param arq_indice Ponteiro para o arquivo de índices
+/// @param cab Ponteiro para o cabeçalho da árvore B
+/// @param rrn_atual RRN da página atual
+/// @param chave Chave a ser inserida
+/// @param byte_offset Byte offset no arquivo de dados
+/// @param chave_promovida Ponteiro para a chave promovida
+/// @param pr_promovido Ponteiro para o ponteiro para a página promovida
+/// @param filho_dir_promovido Ponteiro para o filho da direita promovido
+/// @return 1 se houve promoção, 0 caso contrário
 int insere_recursivo(FILE *arq_indice, cabecalho_arvb *cab, int rrn_atual, int chave, long byte_offset, 
                      int *chave_promovida, int *pr_promovido, int *filho_dir_promovido) {
     
-    // Condição de paragem: Chegámos ao fim da descida (abaixo de uma folha)
+    // Para se chegar abaixo de um nó folha
     if (rrn_atual == -1) {
         *chave_promovida = chave;
         *pr_promovido = (int)byte_offset;
         *filho_dir_promovido = -1;
-        return 1; // Indica que uma inserção precisa de ser feita no nó folha pai
+        return 1; // Inserção nó folha pai
     }
 
     pagina no;
     le_no(arq_indice, rrn_atual, &no);
 
-    // Procura a posição correta dentro do nó atual
+    // busca a posição correta dentro do nó atual
     int pos = 0;
     while (pos < no.nroChaves && chave > no.C[pos]) {
         pos++;
@@ -115,9 +135,9 @@ int insere_recursivo(FILE *arq_indice, cabecalho_arvb *cab, int rrn_atual, int c
     
     if (!houve_promocao) return 0;
 
-    // Se houve promoção do filho, tratamos a inserção no nível atual
+    // Se houve promoção do filho, tratamos a inserção no nivel atual
     if (no.nroChaves < 3) {
-        // Caso 1: Há espaço livre no nó atual. Desloca elementos e insere de forma ordenada.
+        // Caso 1: tem espaço livre no nó atual. Desloca elementos e insere ordenado
         for (int i = no.nroChaves; i > pos; i--) {
             no.C[i] = no.C[i - 1];
             no.Pr[i] = no.Pr[i - 1];
@@ -129,9 +149,9 @@ int insere_recursivo(FILE *arq_indice, cabecalho_arvb *cab, int rrn_atual, int c
         no.nroChaves++;
         
         escreve_no(arq_indice, rrn_atual, &no);
-        return 0; // Inserção concluída com sucesso neste nível (sem propagar split)
+        return 0;
     } else {
-        // Caso 2: Nó Cheio! É necessário efetuar o Split.
+        // Caso 2: Sem espaço no nó, faz o split
         int aux_C[4];
         int aux_Pr[4];
         int aux_P[5];
@@ -144,7 +164,7 @@ int insere_recursivo(FILE *arq_indice, cabecalho_arvb *cab, int rrn_atual, int c
             aux_P[i] = no.P[i];
         }
 
-        // Insere o elemento transbordado na posição ordenada correta da estrutura auxiliar
+        // Insere o elemento que não cabia na posição correta do vetor auxiliar
         int k = 3;
         while (k > pos) {
             aux_C[k] = aux_C[k - 1];
@@ -156,7 +176,7 @@ int insere_recursivo(FILE *arq_indice, cabecalho_arvb *cab, int rrn_atual, int c
         aux_Pr[pos] = pr_aux;
         aux_P[pos + 1] = f_dir_aux;
 
-        // Aloca uma nova página à direita 
+        // Aloca uma nova página a direita 
         int novo_rrn = getProxRRNArvb(cab);
         setProxRRNArvb(cab, novo_rrn + 1);
         setNroNosArvb(cab, getNroNosArvb(cab) + 1);
@@ -164,19 +184,19 @@ int insere_recursivo(FILE *arq_indice, cabecalho_arvb *cab, int rrn_atual, int c
         pagina novo_no;
         inicializa_no_vazio(&novo_no);
         
-        // CORREÇÃO DOS TIPOS: O novo nó da direita nunca pode herdar o tipo "Raiz (0)"
+        // Ajuste do tipo de nó
         if (no.tipoNo == -1) {
             novo_no.tipoNo = -1; // Se a esquerda era folha, o da direita também é
         } else {
             novo_no.tipoNo = 1;  // Se era interno ou raiz antiga, o da direita vira interno
         }
 
-        // CRITÉRIO DE EMPATE: Promove o elemento de índice 2 (primeiro do 2º nó)
+        // Caso empare, promove o elemento de índice 2 (primeiro do segundo nó)
         *chave_promovida = aux_C[2];
         *pr_promovido = aux_Pr[2];
         *filho_dir_promovido = novo_rrn;
 
-        // Nó esquerdo (atual) fica mais cheio (guarda os índices 0 e 1)
+        // Nó esquerdo atual fica mais cheio (guarda os índices 0 e 1)
         no.nroChaves = 2;
         no.C[0] = aux_C[0];  no.Pr[0] = aux_Pr[0];
         no.C[1] = aux_C[1];  no.Pr[1] = aux_Pr[1];
@@ -186,12 +206,12 @@ int insere_recursivo(FILE *arq_indice, cabecalho_arvb *cab, int rrn_atual, int c
         no.C[2] = -1;        no.Pr[2] = -1;
         no.P[3] = -1;
 
-        // Nó direito (novo) assume a chave restante superior (índice 3)
+        // Nó direito novo assume as chaves restantes (índice 3)
         novo_no.nroChaves = 1;
         novo_no.C[0] = aux_C[3];  novo_no.Pr[0] = aux_Pr[3];
         novo_no.P[0] = aux_P[3];  novo_no.P[1] = aux_P[4];
 
-        // Persiste as duas alterações em disco
+        // Escreve no disco
         escreve_no(arq_indice, rrn_atual, &no);
         escreve_no(arq_indice, novo_rrn, &novo_no);
 
@@ -199,10 +219,15 @@ int insere_recursivo(FILE *arq_indice, cabecalho_arvb *cab, int rrn_atual, int c
     }
 }
 
+/// @brief Insere uma chave na árvore B
+/// @param arq_indice Ponteiro para o arquivo de índices 
+/// @param cab Ponteiro para o cabeçalho da árvore B
+/// @param chave Chave a ser inserida
+/// @param byte_offset Offset do byte no arquivo
 void insere_arvore_b(FILE *arq_indice, cabecalho_arvb *cab, int chave, long byte_offset) {
     int raiz_atual = getNoRaizArvb(cab);
 
-    // Árvore totalmente vazia: Criação do nó Raiz inicial
+    // Árvore vazia, cria nó raiz/foha
     if (raiz_atual == -1) {
         int novo_rrn = getProxRRNArvb(cab);
         setProxRRNArvb(cab, novo_rrn + 1);
@@ -211,28 +236,28 @@ void insere_arvore_b(FILE *arq_indice, cabecalho_arvb *cab, int chave, long byte
 
         pagina raiz;
         inicializa_no_vazio(&raiz);
-        raiz.tipoNo = -1; // -1 = Raiz e Folha simultaneamente no início
+        raiz.tipoNo = -1; 
         raiz.nroChaves = 1;
         raiz.C[0] = chave;
         raiz.Pr[0] = (int)byte_offset;
 
         escreve_no(arq_indice, novo_rrn, &raiz);
-        escreveCabecalhoArvb(arq_indice, cab); // CORREÇÃO: Sincroniza o cabeçalho no arquivo
+        escreveCabecalhoArvb(arq_indice, cab);
         return;
     }
 
     int ch_prom, pr_prom, f_dir_prom;
     int transbordou = insere_recursivo(arq_indice, cab, raiz_atual, chave, byte_offset, &ch_prom, &pr_prom, &f_dir_prom);
 
-    // Se o transbordo alcançou o topo absoluto, cria-se uma nova camada (Criação de nova Raiz)
+    // Se não cabe mais, cria uma nova raiz e promove elemento 
     if (transbordou) {
-        // Atualiza a raiz antiga para deixar de se intitular Raiz
+        // Atualiza a raiz antiga que vira ou folha ou nó interno
         pagina raiz_antiga;
         le_no(arq_indice, raiz_atual, &raiz_antiga);
         raiz_antiga.tipoNo = (raiz_antiga.P[0] == -1) ? -1 : 1;
         escreve_no(arq_indice, raiz_atual, &raiz_antiga);
 
-        // Aloca o novo nó do topo absoluto
+        // Aloca o novo nó do
         int nova_raiz_rrn = getProxRRNArvb(cab);
         setProxRRNArvb(cab, nova_raiz_rrn + 1);
         setNroNosArvb(cab, getNroNosArvb(cab) + 1);
@@ -240,7 +265,7 @@ void insere_arvore_b(FILE *arq_indice, cabecalho_arvb *cab, int chave, long byte
 
         pagina nova_raiz;
         inicializa_no_vazio(&nova_raiz);
-        nova_raiz.tipoNo = 0; // 0 = Raiz absoluta com filhos
+        nova_raiz.tipoNo = 0;
         nova_raiz.nroChaves = 1;
         nova_raiz.C[0] = ch_prom;
         nova_raiz.Pr[0] = pr_prom;
@@ -248,6 +273,287 @@ void insere_arvore_b(FILE *arq_indice, cabecalho_arvb *cab, int chave, long byte
         nova_raiz.P[1] = f_dir_prom;   // Aponta para a divisão à direita
 
         escreve_no(arq_indice, nova_raiz_rrn, &nova_raiz);
-        escreveCabecalhoArvb(arq_indice, cab); // CORREÇÃO: Sincroniza o cabeçalho no arquivo
+        escreveCabecalhoArvb(arq_indice, cab);
+    }
+}
+
+
+
+void destroi_pagina_arvore_b(FILE *file_arvb, cabecalho_arvb *cab, int rrn_destruido) {
+    pagina no_destruido;
+    le_no(file_arvb, rrn_destruido, &no_destruido);
+    
+    no_destruido.removido = '1';
+    no_destruido.proximo = getTopoArvb(cab); 
+    
+    setTopoArvb(cab, rrn_destruido);
+    setNroNosArvb(cab, getNroNosArvb(cab) - 1);
+    
+    escreve_no(file_arvb, rrn_destruido, &no_destruido);
+}
+
+void underflow_routine(FILE *file_arvb, cabecalho_arvb *cab, pagina *pai, int pos_filho, int rrn_pai) {
+    int rrn_filho = pai->P[pos_filho];
+    pagina filho;
+    le_no(file_arvb, rrn_filho, &filho);
+
+    // 1. Empréstimo da Direita
+    if (pos_filho < pai->nroChaves) {
+        int rrn_dir = pai->P[pos_filho + 1];
+        pagina dir;
+        le_no(file_arvb, rrn_dir, &dir);
+        
+        if (dir.nroChaves > 1) { 
+            int total_chaves = 1 + dir.nroChaves; 
+            int comb_C[5], comb_Pr[5], comb_P[6];
+            
+            comb_C[0] = pai->C[pos_filho];
+            comb_Pr[0] = pai->Pr[pos_filho];
+            comb_P[0] = filho.P[0];
+            
+            for (int i = 0; i < dir.nroChaves; i++) {
+                comb_C[i + 1] = dir.C[i];
+                comb_Pr[i + 1] = dir.Pr[i];
+                comb_P[i + 1] = dir.P[i];
+            }
+            comb_P[dir.nroChaves + 1] = dir.P[dir.nroChaves];
+
+            int num_esq = total_chaves / 2; 
+            filho.nroChaves = num_esq;
+            for (int i = 0; i < num_esq; i++) {
+                filho.C[i] = comb_C[i];
+                filho.Pr[i] = comb_Pr[i];
+                filho.P[i] = comb_P[i];
+            }
+            filho.P[num_esq] = comb_P[num_esq];
+            
+            for (int i = num_esq; i < 3; i++) { filho.C[i] = -1; filho.Pr[i] = -1; }
+            for (int i = num_esq + 1; i < 4; i++) { filho.P[i] = -1; }
+
+            pai->C[pos_filho] = comb_C[num_esq];
+            pai->Pr[pos_filho] = comb_Pr[num_esq];
+
+            int num_dir = total_chaves - num_esq - 1;
+            dir.nroChaves = num_dir;
+            for (int i = 0; i < num_dir; i++) {
+                dir.C[i] = comb_C[num_esq + 1 + i];
+                dir.Pr[i] = comb_Pr[num_esq + 1 + i];
+                dir.P[i] = comb_P[num_esq + 1 + i];
+            }
+            dir.P[num_dir] = comb_P[total_chaves];
+            
+            for (int i = num_dir; i < 3; i++) { dir.C[i] = -1; dir.Pr[i] = -1; }
+            for (int i = num_dir + 1; i < 4; i++) { dir.P[i] = -1; }
+
+            escreve_no(file_arvb, rrn_filho, &filho);
+            escreve_no(file_arvb, rrn_dir, &dir);
+            escreve_no(file_arvb, rrn_pai, pai);
+            return;
+        }
+    }
+
+    // 2. Empréstimo da Esquerda
+    if (pos_filho > 0) {
+        int rrn_esq = pai->P[pos_filho - 1];
+        pagina esq;
+        le_no(file_arvb, rrn_esq, &esq);
+        
+        if (esq.nroChaves > 1) { 
+            int total_chaves = esq.nroChaves + 1; 
+            int comb_C[5], comb_Pr[5], comb_P[6];
+            
+            for (int i = 0; i < esq.nroChaves; i++) {
+                comb_C[i] = esq.C[i];
+                comb_Pr[i] = esq.Pr[i];
+                comb_P[i] = esq.P[i];
+            }
+            comb_P[esq.nroChaves] = esq.P[esq.nroChaves];
+            comb_C[esq.nroChaves] = pai->C[pos_filho - 1];
+            comb_Pr[esq.nroChaves] = pai->Pr[pos_filho - 1];
+            comb_P[esq.nroChaves + 1] = filho.P[0];
+
+            int num_esq = total_chaves / 2;
+            esq.nroChaves = num_esq;
+            for (int i = 0; i < num_esq; i++) {
+                esq.C[i] = comb_C[i];
+                esq.Pr[i] = comb_Pr[i];
+                esq.P[i] = comb_P[i];
+            }
+            esq.P[num_esq] = comb_P[num_esq];
+            for (int i = num_esq; i < 3; i++) { esq.C[i] = -1; esq.Pr[i] = -1; }
+            for (int i = num_esq + 1; i < 4; i++) { esq.P[i] = -1; }
+
+            pai->C[pos_filho - 1] = comb_C[num_esq];
+            pai->Pr[pos_filho - 1] = comb_Pr[num_esq];
+
+            int num_dir = total_chaves - num_esq - 1;
+            filho.nroChaves = num_dir;
+            for (int i = 0; i < num_dir; i++) {
+                filho.C[i] = comb_C[num_esq + 1 + i];
+                filho.Pr[i] = comb_Pr[num_esq + 1 + i];
+                filho.P[i] = comb_P[num_esq + 1 + i];
+            }
+            filho.P[num_dir] = comb_P[total_chaves];
+            for (int i = num_dir; i < 3; i++) { filho.C[i] = -1; filho.Pr[i] = -1; }
+            for (int i = num_dir + 1; i < 4; i++) { filho.P[i] = -1; }
+
+            escreve_no(file_arvb, rrn_filho, &filho);
+            escreve_no(file_arvb, rrn_esq, &esq);
+            escreve_no(file_arvb, rrn_pai, pai);
+            return;
+        }
+    }
+
+    // 3. Concatenação à Esquerda
+    if (pos_filho > 0) {
+        int rrn_esq = pai->P[pos_filho - 1];
+        pagina esq;
+        le_no(file_arvb, rrn_esq, &esq);
+
+        esq.C[esq.nroChaves] = pai->C[pos_filho - 1];
+        esq.Pr[esq.nroChaves] = pai->Pr[pos_filho - 1];
+        esq.P[esq.nroChaves + 1] = filho.P[0];
+        esq.nroChaves++;
+
+        for (int i = pos_filho - 1; i < pai->nroChaves - 1; i++) {
+            pai->C[i] = pai->C[i + 1];
+            pai->Pr[i] = pai->Pr[i + 1];
+            pai->P[i + 1] = pai->P[i + 2];
+        }
+        pai->C[pai->nroChaves - 1] = -1;
+        pai->Pr[pai->nroChaves - 1] = -1;
+        pai->P[pai->nroChaves] = -1;
+        pai->nroChaves--;
+
+        escreve_no(file_arvb, rrn_esq, &esq);
+        escreve_no(file_arvb, rrn_pai, pai);
+        destroi_pagina_arvore_b(file_arvb, cab, rrn_filho);
+        return;
+    }
+
+    // 4. Concatenação à Direita
+    if (pos_filho < pai->nroChaves) {
+        int rrn_dir = pai->P[pos_filho + 1];
+        pagina dir;
+        le_no(file_arvb, rrn_dir, &dir);
+
+        filho.C[0] = pai->C[pos_filho];
+        filho.Pr[0] = pai->Pr[pos_filho];
+        filho.P[1] = dir.P[0];
+        for (int i = 0; i < dir.nroChaves; i++) {
+            filho.C[1 + i] = dir.C[i];
+            filho.Pr[1 + i] = dir.Pr[i];
+            filho.P[2 + i] = dir.P[1 + i];
+        }
+        filho.nroChaves = 1 + dir.nroChaves;
+
+        for (int i = pos_filho; i < pai->nroChaves - 1; i++) {
+            pai->C[i] = pai->C[i + 1];
+            pai->Pr[i] = pai->Pr[i + 1];
+            pai->P[i + 1] = pai->P[i + 2];
+        }
+        pai->C[pai->nroChaves - 1] = -1;
+        pai->Pr[pai->nroChaves - 1] = -1;
+        pai->P[pai->nroChaves] = -1;
+        pai->nroChaves--;
+
+        escreve_no(file_arvb, rrn_filho, &filho);
+        escreve_no(file_arvb, rrn_pai, pai);
+        destroi_pagina_arvore_b(file_arvb, cab, rrn_dir); 
+        return;
+    }
+}
+
+int DELETE_arvb(FILE *file_arvb, cabecalho_arvb *cab, int rrn_atual, int chave_procurada) {
+    if (rrn_atual == -1) return 0; 
+
+    pagina no_atual;
+    le_no(file_arvb, rrn_atual, &no_atual);
+
+    int pos = 0;
+    int encontrou = 0;
+    for (pos = 0; pos < no_atual.nroChaves; pos++) {
+        if (no_atual.C[pos] == chave_procurada) {
+            encontrou = 1;
+            break;
+        }
+        if (no_atual.C[pos] > chave_procurada) break;
+    }
+
+    if (encontrou) {
+        if (no_atual.tipoNo == -1) { 
+            for (int i = pos; i < no_atual.nroChaves - 1; i++) {
+                no_atual.C[i] = no_atual.C[i + 1];
+                no_atual.Pr[i] = no_atual.Pr[i + 1];
+                no_atual.P[i + 1] = no_atual.P[i + 2];
+            }
+            no_atual.C[no_atual.nroChaves - 1] = -1;
+            no_atual.Pr[no_atual.nroChaves - 1] = -1;
+            no_atual.P[no_atual.nroChaves] = -1;
+            no_atual.nroChaves--;
+            
+            escreve_no(file_arvb, rrn_atual, &no_atual);
+            return (no_atual.nroChaves < 1); 
+        } else { 
+            int rrn_sucessor = no_atual.P[pos + 1]; 
+            pagina succ_node;
+            le_no(file_arvb, rrn_sucessor, &succ_node);
+            
+            while (succ_node.tipoNo != -1) { 
+                rrn_sucessor = succ_node.P[0];
+                le_no(file_arvb, rrn_sucessor, &succ_node);
+            }
+            
+            int succ_chave = succ_node.C[0];
+            int succ_pr = succ_node.Pr[0];
+
+            no_atual.C[pos] = succ_chave;
+            no_atual.Pr[pos] = succ_pr;
+            escreve_no(file_arvb, rrn_atual, &no_atual);
+
+            int underflow = DELETE_arvb(file_arvb, cab, no_atual.P[pos + 1], succ_chave);
+            
+            if (underflow) {
+                le_no(file_arvb, rrn_atual, &no_atual);
+                underflow_routine(file_arvb, cab, &no_atual, pos + 1, rrn_atual);
+            }
+            
+            le_no(file_arvb, rrn_atual, &no_atual);
+            return (no_atual.nroChaves < 1);
+        }
+    } else {
+        int underflow = DELETE_arvb(file_arvb, cab, no_atual.P[pos], chave_procurada);
+        
+        if (underflow) {
+            le_no(file_arvb, rrn_atual, &no_atual);
+            underflow_routine(file_arvb, cab, &no_atual, pos, rrn_atual);
+        }
+        
+        le_no(file_arvb, rrn_atual, &no_atual);
+        return (no_atual.nroChaves < 1);
+    }
+}
+
+// Essa função encapsula a remoção e cuida da raiz se ela esvaziar!
+void remover_arvore_b(FILE *arq_indice, cabecalho_arvb *cab, int chave_procurada) {
+    int raiz_atual = getNoRaizArvb(cab); // ou cab->noRaiz, dependendo de como você pega
+    if (raiz_atual == -1) return;
+
+    DELETE_arvb(arq_indice, cab, raiz_atual, chave_procurada);
+
+    // Verifica se a raiz esvaziou após a remoção
+    pagina raiz;
+    le_no(arq_indice, raiz_atual, &raiz);
+    
+    if (raiz.nroChaves == 0) {
+        if (raiz.tipoNo != -1) {
+            // A raiz esvaziou, mas não é folha. O filho P[0] vira a nova raiz!
+            setNoRaizArvb(cab, raiz.P[0]); // ou cab->noRaiz = raiz.P[0];
+            destroi_pagina_arvore_b(arq_indice, cab, raiz_atual);
+        } else {
+            // A árvore ficou inteira vazia
+            setNoRaizArvb(cab, -1); // ou cab->noRaiz = -1;
+            destroi_pagina_arvore_b(arq_indice, cab, raiz_atual);
+        }
     }
 }
