@@ -547,9 +547,16 @@ void remover_arvore_b(FILE *arq_indice, cabecalho_arvb *cab, int chave_procurada
     
     if (raiz.nroChaves == 0) {
         if (raiz.tipoNo != -1) {
-            // A raiz esvaziou, mas não é folha. O filho P[0] vira a nova raiz!
-            setNoRaizArvb(cab, raiz.P[0]); // ou cab->noRaiz = raiz.P[0];
+            int nova_raiz_rrn = raiz.P[0];
+            setNoRaizArvb(cab, nova_raiz_rrn); 
             destroi_pagina_arvore_b(arq_indice, cab, raiz_atual);
+            
+            pagina nova_raiz;
+            le_no(arq_indice, nova_raiz_rrn, &nova_raiz);
+            if (nova_raiz.tipoNo == 1) { // se era nó intermediário
+                nova_raiz.tipoNo = 0;    // atualiza para ser a nova raiz
+                escreve_no(arq_indice, nova_raiz_rrn, &nova_raiz);
+            } 
         } else {
             // A árvore ficou inteira vazia
             setNoRaizArvb(cab, -1); // ou cab->noRaiz = -1;
