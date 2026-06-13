@@ -11,10 +11,10 @@
 /// @param nome_arq_indice Nome do arquivo de índice.
 void criar_indice_arvore_b(char *nome_arq_dados, char *nome_arq_indice)
 {
-    FILE *arq_dados = abre_verifica_rb(nome_arq_dados);
+    FILE *arq_dados = abre_verifica_rb(nome_arq_dados);         // Abre e verifica o arquivo de dados
     if (arq_dados == NULL) return;
 
-    FILE *arq_indice = abre_verifica_wbplus(nome_arq_indice);
+    FILE *arq_indice = abre_verifica_wbplus(nome_arq_indice);   // Cria e verifica o arquivo de index
     if (arq_indice == NULL) {
         fclose(arq_dados);
         return;

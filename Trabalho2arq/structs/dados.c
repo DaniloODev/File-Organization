@@ -1,7 +1,7 @@
-#include "dados.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "dados.h"
 
 struct _dados {
     char removido;          // '0' para ativo, '1' para removido

@@ -1,9 +1,8 @@
+#include <string.h>
 #include "auxiliares.h"
 #include "../fornecidas/fornecidas.h"
-#include <string.h>
 
-/// @brief          Serve para ler o arquivo palavra por palavra, 
-///                 retornando 0 ou 1 que é conveniente para usar dentro de um loop
+/// @brief          Serve para ler o arquivo palavra por palavra
 /// @param file     Ponteiro para o arquivo na stack 
 /// @param buffer   Ponteiro para pegar a string contida no arquivo
 /// @return         Retorna 0 ao acabar o arquivo e 1 enquanto nao terminar a leitura do arquivo

@@ -12,7 +12,7 @@
 /// @param n_buscas     Número de iterações de update.
 void UPDATE(char *nomeArqBin, int n_buscas)
 {
-    FILE *file = abre_verifica_rbplus(nomeArqBin);
+    FILE *file = abre_verifica_rbplus(nomeArqBin);  // Abre e verifica o arquivo de dados
     if (file == NULL) return;
 
     // Altera o status para inconsistente no início das operações

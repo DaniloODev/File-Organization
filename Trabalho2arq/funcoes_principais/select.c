@@ -2,6 +2,7 @@
 #include "../fornecidas/fornecidas.h"
 #include "../structs/dados.h"
 #include "../structs/arvore_b.h"
+#include "../structs/cabecalho_arvb.h"
 #include "select.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +12,7 @@
 /// @param nomeArqBin   Nome do arquivo binário.
 void SELECT_FROM(char *nomeArqBin)
 {
-    FILE *file = abre_verifica_rb(nomeArqBin);
+    FILE *file = abre_verifica_rb(nomeArqBin);  // Abre e verifica o arquivo de dados
     if (file == NULL) return;
 
     fseek(file, 17, SEEK_SET);  // Pula o cabeçalh
@@ -31,11 +32,11 @@ void SELECT_FROM(char *nomeArqBin)
         encontrou = 1;
         printa_estacao(trem);
 
-        dados_apaga(trem); // Libera o registro após o uso
+        dados_apaga(trem); // Libera memória previamente alocada
     }
 
     if (!encontrou)
-        printf("Registro inexistente.\n");
+        printf("Registro inexistente.\n");  // Se não encontrou, não existe
 
     fclose(file);
 }
@@ -45,7 +46,7 @@ void SELECT_FROM(char *nomeArqBin)
 /// @param numero_buscas    Número de buscas a serem realizadas.
 void SELECT_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int numero_buscas)
 {
-    FILE *file = abre_verifica_rb(nomeArqBin);
+    FILE *file = abre_verifica_rb(nomeArqBin);  // Avre e verifica o arquivo de dados
     if (file == NULL) return;
 
     for (int b = 0; b < numero_buscas; b++)
@@ -55,12 +56,12 @@ void SELECT_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int numero_buscas)
         int encontrouAoMenosUm = 0;
         int m_campos;
         
-        scanf("%d", &m_campos);
+        scanf("%d", &m_campos); // Numero de buscas a serem realizadas
 
         char nomesCampos[m_campos][50];
         char valoresBusca[m_campos][100];
 
-        // Coleta os filtros da busca
+        // Faz a leitura do que será buscado
         for (int j = 0; j < m_campos; j++)
         {
             scanf("%s", nomesCampos[j]);
@@ -76,23 +77,22 @@ void SELECT_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int numero_buscas)
             }
         }
 
+        int noRaiz;
+
+        // Se for passado um arquivo de indexação e um codigo de estação
+        // (primary key), fazemos a busca utilizando a arvore
         if (indice_codEstacao != -1 && nomeArqArvoreB != NULL) {
-            FILE *file_arvb = abre_verifica_rb(nomeArqArvoreB);
+            FILE *file_arvb = abre_verifica_rb(nomeArqArvoreB); // Abre e verifica o arquivio de indexação
             if (file_arvb == NULL) continue; 
 
             int chave_procurada = atoi(valoresBusca[indice_codEstacao]);
-            char status_arvb;
-            int noRaiz, topo_arvb, proxRRN_arvb, nroNos_arvb;
 
-            fseek(file_arvb, 0, SEEK_SET);
-            fread(&status_arvb, sizeof(char), 1, file_arvb);
-            fread(&noRaiz, sizeof(int), 1, file_arvb);
-            fread(&topo_arvb, sizeof(int), 1, file_arvb);
-            fread(&proxRRN_arvb, sizeof(int), 1, file_arvb);
-            fread(&nroNos_arvb, sizeof(int), 1, file_arvb);
+            // Carrgando o cabeçalho da arvore e pegando informações
+            cabecalho_arvb *cab_arvb = leCabecalhoArvb(file_arvb);
+            noRaiz = getNoRaizArvb(cab_arvb);
 
             long offset = busca_arvore_b(file_arvb, noRaiz, chave_procurada);
-            if(offset != -1){
+            if(offset != -1){   // Se encontrou o ofsset, achou na busca
                 fseek(file, offset, SEEK_SET);
                 
                 dados *trem = dados_le_binario(file);
@@ -107,18 +107,18 @@ void SELECT_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int numero_buscas)
                 }
             }
         
-            if (!encontrouAoMenosUm) {
+            if (!encontrouAoMenosUm) {  // Se não encontrou
                 printf("Registro inexistente.\n");
             }
             
             fclose(file_arvb);
         } else {
-            // Busca sequencial
+            // Busca sequencial, caso não tenha sido passado um arquivo de index
             fseek(file, 17, SEEK_SET); // Reposiciona no início dos registros de dados para cada busca
             
             dados *trem = NULL;
 
-            while ((trem = dados_le_binario(file)) != NULL)
+            while ((trem = dados_le_binario(file)) != NULL) // Enquanto der para ler o arquivo
             {
                 // Pula registros logicamente removidos
                 if (dados_get_removido(trem) == '1') {
@@ -137,7 +137,7 @@ void SELECT_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int numero_buscas)
                 dados_apaga(trem); // Libera a memória previamente alocada
             }        
             
-            if (!encontrouAoMenosUm) {
+            if (!encontrouAoMenosUm) {  // Se não encontrou, printa que não existe
                 printf("Registro inexistente.\n");
             }
         }

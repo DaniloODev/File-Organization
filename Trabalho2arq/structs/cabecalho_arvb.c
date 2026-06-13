@@ -1,5 +1,5 @@
-#include "cabecalho_arvb.h"
 #include <stdlib.h>
+#include "cabecalho_arvb.h"
 
 struct _cabecalho_arvb {
     char status;   // 1 Byte
@@ -15,6 +15,7 @@ cabecalho_arvb* inicializaCabecalhoArvb() {
     cabecalho_arvb *c_arvb = malloc(sizeof(cabecalho_arvb));
     if (c_arvb == NULL) return NULL;
     
+    // Setando os valores padrão
     c_arvb->status = '0';
     c_arvb->noRaiz = -1;
     c_arvb->topo = -1;
@@ -75,14 +76,14 @@ cabecalho_arvb* leCabecalhoArvb(FILE *fp) {
     return c_arvb;
 }
 
-// Pegar informações do cabeçalho, de forma individual
+// Pegar informações do cabeçalho da arvore b, de forma individual
 char getStatusArvb(cabecalho_arvb *c_arvb) { return c_arvb->status; }
 int getNoRaizArvb(cabecalho_arvb *c_arvb) { return c_arvb->noRaiz; }
 int getTopoArvb(cabecalho_arvb *c_arvb) { return c_arvb->topo; }
 int getProxRRNArvb(cabecalho_arvb *c_arvb) { return c_arvb->proxRRN; }
 int getNroNosArvb(cabecalho_arvb *c_arvb) { return c_arvb->nroNos; }
 
-// Adicionar coisas ao cabeçalho, de forma individual
+// Adicionar coisas ao cabeçalho da arvore b, de forma individual
 void setNoRaizArvb(cabecalho_arvb *c_arvb, int noRaiz) { c_arvb->noRaiz = noRaiz; }
 void setProxRRNArvb(cabecalho_arvb *c_arvb, int proxRRN) { c_arvb->proxRRN = proxRRN; }
 void setNroNosArvb(cabecalho_arvb *c_arvb, int nroNos) { c_arvb->nroNos = nroNos; }

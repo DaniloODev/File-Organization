@@ -1,8 +1,8 @@
+#include <string.h>
+#include <stdlib.h>
 #include "calcula.h"
 #include "../structs/cabecalho.h"
 #include "../structs/dados.h"
-#include <string.h>
-#include <stdlib.h>
 
 /// @brief                  Calcula o número de estações únicas
 /// @param d                O array de ponteiros para as structs de dados

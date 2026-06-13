@@ -1,11 +1,11 @@
+#include <stdlib.h>
+#include <string.h>
 #include "create_table.h"
 #include "../structs/cabecalho.h"
 #include "../structs/dados.h"
 #include "../fornecidas/fornecidas.h"
 #include "./aux/auxiliares.h"
 #include "./aux/calcula.h"
-#include <stdlib.h>
-#include <string.h>
 
 /// @brief          Dado um arquivo, ele faz a leitura e transforma em binário
 /// @param nomeArq  Nome do arquivo CSV a ser lido.
