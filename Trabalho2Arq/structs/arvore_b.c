@@ -177,8 +177,7 @@ int insere_recursivo(FILE *arq_indice, cabecalho_arvb *cab, int rrn_atual, int c
         aux_P[pos + 1] = f_dir_aux;
 
         // Aloca uma nova página a direita 
-        int novo_rrn = getProxRRNArvb(cab);
-        setProxRRNArvb(cab, novo_rrn + 1);
+        int novo_rrn = pega_rrn_disponivel_arvb(arq_indice, cab);
         setNroNosArvb(cab, getNroNosArvb(cab) + 1);
 
         pagina novo_no;
@@ -229,8 +228,7 @@ void insere_arvore_b(FILE *arq_indice, cabecalho_arvb *cab, int chave, long byte
 
     // Árvore vazia, cria nó raiz/foha
     if (raiz_atual == -1) {
-        int novo_rrn = getProxRRNArvb(cab);
-        setProxRRNArvb(cab, novo_rrn + 1);
+        int novo_rrn = pega_rrn_disponivel_arvb(arq_indice, cab);
         setNroNosArvb(cab, getNroNosArvb(cab) + 1);
         setNoRaizArvb(cab, novo_rrn);
 
@@ -258,8 +256,7 @@ void insere_arvore_b(FILE *arq_indice, cabecalho_arvb *cab, int chave, long byte
         escreve_no(arq_indice, raiz_atual, &raiz_antiga);
 
         // Aloca o novo nó do
-        int nova_raiz_rrn = getProxRRNArvb(cab);
-        setProxRRNArvb(cab, nova_raiz_rrn + 1);
+        int nova_raiz_rrn = pega_rrn_disponivel_arvb(arq_indice, cab);
         setNroNosArvb(cab, getNroNosArvb(cab) + 1);
         setNoRaizArvb(cab, nova_raiz_rrn);
 
@@ -562,5 +559,26 @@ void remover_arvore_b(FILE *arq_indice, cabecalho_arvb *cab, int chave_procurada
             setNoRaizArvb(cab, -1); // ou cab->noRaiz = -1;
             destroi_pagina_arvore_b(arq_indice, cab, raiz_atual);
         }
+    }
+}
+
+int pega_rrn_disponivel_arvb(FILE *arq_indice, cabecalho_arvb *cab) {
+    int topo_arvb = getTopoArvb(cab); // Pega o campo 'topo' do cabeçalho da árvore
+    
+    if (topo_arvb != -1) {
+        // REAPROVEITAMENTO: Temos uma página removida na árvore!
+        pagina no_removido;
+        le_no(arq_indice, topo_arvb, &no_removido);
+        
+        // O topo da árvore agora avança para o 'proximo' da pilha encadeada
+        setTopoArvb(cab, no_removido.proximo);
+        
+        // Retorna o RRN recuperado sem mexer no proxRRN
+        return topo_arvb;
+    } else {
+        // Pilha vazia: aloca no fim do arquivo e incrementa
+        int novo_rrn = getProxRRNArvb(cab);
+        setProxRRNArvb(cab, novo_rrn + 1);
+        return novo_rrn;
     }
 }

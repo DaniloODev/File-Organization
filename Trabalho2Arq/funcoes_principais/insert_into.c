@@ -27,8 +27,6 @@ void INSERT_INTO(char *nomeArqBin, char *nomeArqIndice, int n_insercoes)
     FILE *fileIndex = NULL;
     cabecalho_arvb *cab_arvb = NULL;
     
-    // Se não houver arquivo de index passado ele fará a inserção sem ele,
-    // Para não quebrar o INSERT_INTO do primeiro trabalho 
     if (nomeArqIndice != NULL) {
         fileIndex = abre_verifica_rbplus(nomeArqIndice);
         if (fileIndex == NULL) {
@@ -38,13 +36,15 @@ void INSERT_INTO(char *nomeArqBin, char *nomeArqIndice, int n_insercoes)
         cab_arvb = leCabecalhoArvb(fileIndex);
     }
     
-    // Carrega informações do cabecalho do arquivo de dados
+    // Carrega informações do cabeçalho do arquivo de dados
     cabecalho *cab_dados = leCabecalhoDados(file);
     int topo = getTopoCabecalho(cab_dados);
     int proxRRN = getProxRRNCabecalho(cab_dados);
 
-    setStatus(cab_dados, '1');  // Muda o status para inconsistente
+    // Status inicial de escrita em lote deve ser '0' (inconsistente)
+    setStatus(cab_dados, '0');  
     gravaCabecalho(file, cab_dados);
+    finalizaCabecalho(cab_dados);
     
     if (fileIndex != NULL && cab_arvb != NULL) {
         setStatusArvb(cab_arvb, '0');
@@ -53,23 +53,20 @@ void INSERT_INTO(char *nomeArqBin, char *nomeArqIndice, int n_insercoes)
 
     for (int b = 0; b < n_insercoes; b++)
     {
-        dados *reg = dados_cria();
-        
         char bufferNulo[50]; 
         int codEstacao, codLinha, codProxEstacao, distProxEstacao, codLinhaIntegra, codEstIntegra;
 
-        scanf("%d", &codEstacao);
+        // Leitura dos campos
+        if (scanf("%d", &codEstacao) != 1) break;
 
         char bufferNomeEst[200];
         ScanQuoteString(bufferNomeEst);
-        dados_set_nomeEstacao(reg, bufferNomeEst);
 
         scanf("%s", bufferNulo);
         codLinha = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
 
         char bufferNomeLinha[200];
         ScanQuoteString(bufferNomeLinha);
-        dados_set_nomeLinha(reg, (strcmp(bufferNomeLinha, "") == 0) ? "" : bufferNomeLinha);
 
         scanf("%s", bufferNulo);
         codProxEstacao = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
@@ -83,57 +80,67 @@ void INSERT_INTO(char *nomeArqBin, char *nomeArqIndice, int n_insercoes)
         scanf("%s", bufferNulo);
         codEstIntegra = (strcmp(bufferNulo, "NULO") == 0) ? -1 : atoi(bufferNulo);
 
-        dados_set_campos_fixos(reg, '0', -1, codEstacao, codLinha, codProxEstacao, distProxEstacao, codLinhaIntegra, codEstIntegra);
-
-        long offset_escrita = -1;
-        int ja_existe = 0;
-
-        // Verifica se a estação ja existe
+        // Checagem de duplicidade
+        int ja_existe_ativo = 0;
         if (fileIndex != NULL && cab_arvb != NULL) {
             int raiz_atual = getNoRaizArvb(cab_arvb);
-            
-            // Passa o arquivo, o RRN da raiz e a chave buscada
             long offset_encontrado = busca_arvore_b(fileIndex, raiz_atual, codEstacao);
             
             if (offset_encontrado != -1) {
-                offset_escrita = offset_encontrado;
-                ja_existe = 1; // Registro já existe, ativa o modo substituição
-            }
-        }
-
-        // Se não existe, aloca um espaço novo (seja na pilha ou no final do arquivo)
-        if (!ja_existe) {
-            if (topo != -1) {
-                offset_escrita = 17 + (long)(topo * 80);    
+                // A chave existe na Árvore B. Verifica se ela está ativa
+                fseek(file, offset_encontrado, SEEK_SET);
+                dados *reg_verificacao = dados_le_binario(file);
                 
-                fseek(file, offset_escrita, SEEK_SET);
-                dados *reg_removido = dados_le_binario(file);
-                topo = dados_get_proxRemovido(reg_removido);
-                dados_apaga(reg_removido); 
-            } else {
-                offset_escrita = 17 + (long)(proxRRN * 80); 
-                proxRRN++;                                  
+                if (dados_get_removido(reg_verificacao) == '0') {
+                    ja_existe_ativo = 1; // Registro duplicado e ativo
+                }
+                dados_apaga(reg_verificacao);
             }
         }
 
-        // Move o ponteiro para a posição correta e grava
+        // Se o registro já existir ativo, ignora
+        if (ja_existe_ativo) {
+            continue;
+        }
+
+        // Cria registro
+        dados *reg = dados_cria();
+        dados_set_nomeEstacao(reg, bufferNomeEst);
+        dados_set_nomeLinha(reg, (strcmp(bufferNomeLinha, "") == 0) ? "" : bufferNomeLinha);
+        dados_set_campos_fixos(reg, '0', -1, codEstacao, codLinha, codProxEstacao, distProxEstacao, codLinhaIntegra, codEstIntegra);
+
+        long offset_escrita = -1;
+
+        // Aloca espaço pegando da pilha de removidos
+        if (topo != -1) {
+            offset_escrita = 17 + (long)(topo * 80);    
+            
+            fseek(file, offset_escrita, SEEK_SET);
+            dados *reg_removido = dados_le_binario(file);
+            topo = dados_get_proxRemovido(reg_removido);
+            dados_apaga(reg_removido); 
+        } else {
+            offset_escrita = 17 + (long)(proxRRN * 80); 
+            proxRRN++;                                  
+        }
+
+        // Grava no arquivo de dados
         fseek(file, offset_escrita, SEEK_SET);
         dados_grava_binario(reg, file);
 
-        // Só insere na Árvore se o registro for novo, já que ela é indexada pelo código unico
-        if (!ja_existe && fileIndex != NULL && cab_arvb != NULL) {
-            int offset_conversao_int = (int)offset_escrita;
-            insere_arvore_b(fileIndex, cab_arvb, codEstacao, offset_conversao_int);
+        // Atualiza a indexação
+        if (fileIndex != NULL && cab_arvb != NULL) {
+            int raiz_atual = getNoRaizArvb(cab_arvb);
+            if (busca_arvore_b(fileIndex, raiz_atual, codEstacao) == -1) {
+                int offset_conversao_int = (int)offset_escrita;
+                insere_arvore_b(fileIndex, cab_arvb, codEstacao, offset_conversao_int);
+            }
         }
         
         dados_apaga(reg); 
     }
 
-    // Grava o cabeçalho e fecha o arquivo
-    recalcula_e_grava_cabecalho(file, topo, proxRRN);   
-    fclose(file);
-
-    // Grava o cabeçalho da Árvore e fecha o raquivo
+    // Grava o cabeçalho da Árvore como estável e fecha o arquivo de índice
     if (fileIndex != NULL && cab_arvb != NULL) {
         setStatusArvb(cab_arvb, '1');
         escreveCabecalhoArvb(fileIndex, cab_arvb);
@@ -141,6 +148,10 @@ void INSERT_INTO(char *nomeArqBin, char *nomeArqIndice, int n_insercoes)
         fclose(fileIndex);
     }
 
+    // Recalcula e grava o cabeçalho
+    recalcula_e_grava_cabecalho(file, topo, proxRRN);   
+    fclose(file);
+
     BinarioNaTela(nomeArqBin);
-    if (nomeArqIndice != NULL)  BinarioNaTela(nomeArqIndice);
+    if (nomeArqIndice != NULL) BinarioNaTela(nomeArqIndice);
 }

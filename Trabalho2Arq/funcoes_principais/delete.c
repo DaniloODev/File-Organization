@@ -20,7 +20,6 @@ void DELETE_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int n_buscas)
 
     int topo, proxRRN, nroEstacoes, nroParesEstacao;
     
-    // Altera o status do cabeçalho para inconsistente no início da operação
     char status = '0';
     fseek(binFile, 0, SEEK_SET);
     fwrite(&status, sizeof(char), 1, binFile);
