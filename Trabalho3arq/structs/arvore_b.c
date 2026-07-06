@@ -275,7 +275,6 @@ void insere_arvore_b(FILE *arq_indice, cabecalho_arvb *cab, int chave, long byte
 }
 
 
-
 /// @brief                  Marca a pagina da árvore como não ativa, caso todos os itens dela estejam deletados
 /// @param file_arvb        Ponteiro para o arquivo de indexação
 /// @param cab              Ponteiro para o cabeçalho da árvore

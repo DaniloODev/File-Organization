@@ -1,0 +1,97 @@
+#include "cabecalho.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+struct _cabecalho
+{
+    char status;            // 0 inconsistente, 1 consistente
+    int topo;               // Byte offset do registro removido ou -1
+    int proxRRN;            // Próximo RRN disponível
+    int nroEstacoes;        // Qtd de estações únicas
+    int nroParesEstacao;    // Qtd de pares únicos
+};
+
+/// @brief  Aloca memória para o cabeçalho e inicializa a estrutura com valores padrão.
+/// @return Ponteiro para o cabeçalho.
+cabecalho* inicializaCabecalho()
+{
+    cabecalho *c = malloc (sizeof(cabecalho)); // Aloca memória para o cabeçalho.
+    if (c == NULL){
+        fprintf(stderr, "Erro ao alocar memória para o cabeçalho.\n");
+        exit(EXIT_FAILURE);
+    }
+    // Inicializa os campos com valores padrão.
+    c->status = '0';        // 1 Byte
+    c->topo = -1;           // 4 Bytes
+    c->proxRRN = 0;         // 4 Bytes
+    c->nroEstacoes = 0;     // 4 Bytes
+    c->nroParesEstacao = 0; // 4 Bytes
+    return c;
+}
+
+/// @brief Desaloca a memória com um simples free(), já que foi alocado apenas uma simples struct.
+void finalizaCabecalho(cabecalho *c){
+    free(c);
+}
+
+/// @brief              Atualiza os campos do cabeçalho para que sejam gravados futurarmente
+/// @param c            Ponteiro do cabeçalho a ser atualizado.
+/// @param status       Valor do status, consistente ou inconsistente.
+/// @param topo         RRN do último excluído
+/// @param proxRRN      RRN da posição em branco (após o ultimo registro do arquivo)
+/// @param nroEstacoes  Número de estações ativas 
+/// @param nroPares     Número de pares de estações
+void atualizaCabecalho(cabecalho *c, char status, int topo, int proxRRN, int nroEstacoes, int nroPares)
+{   
+    // Atualiza campos com os valores passados
+    c->status = status;
+    c->topo = topo;
+    c->proxRRN = proxRRN;
+    c->nroEstacoes = nroEstacoes;
+    c->nroParesEstacao = nroPares;
+}
+
+/// @brief          Responsável por gravar o cabeçalho no arquivo, de forma que ocupe exatamente 17 Bytes.
+/// @param binFile  Arquivo préviamente aberto.
+/// @param c        Ponteiro para o cabeçalho previamente atualizado.
+void gravaCabecalho(FILE *binFile, cabecalho *c)
+{
+    // Pega o inicio do arquivo, no byte 0
+    fseek(binFile, 0, SEEK_SET);
+
+    // Grava os campos do cabeçalho
+    fwrite(&c->status, sizeof(char), 1, binFile);
+    fwrite(&c->topo, sizeof(int), 1, binFile);
+    fwrite(&c->proxRRN, sizeof(int), 1, binFile);
+    fwrite(&c->nroEstacoes, sizeof(int), 1, binFile);
+    fwrite(&c->nroParesEstacao, sizeof(int), 1, binFile);
+}
+
+/// @brief          Faz a leitura do cabeçalho do arquivo de dados
+/// @param binFile  Ponteiro para o arquivo binário de dados
+/// @return         Retorna um ponteiro do nosso objeto cabeçalho
+cabecalho *leCabecalhoDados(FILE *binFile)
+{   
+    cabecalho *c = inicializaCabecalho();
+    fseek(binFile, 0, SEEK_SET);
+    fread(&c->status, sizeof(char), 1, binFile);
+    fread(&c->topo, sizeof(int), 1, binFile);             
+    fread(&c->proxRRN, sizeof(int), 1, binFile);
+    fread(&c->nroEstacoes, sizeof(int), 1, binFile);
+    fread(&c->nroParesEstacao, sizeof(int), 1, binFile);
+    return c;
+}
+
+// Retorna dados especificos da struct
+char getStatusCabecalho(const cabecalho *c) { return c->status; }
+int getTopoCabecalho(const cabecalho *c) { return c->topo; }
+int getProxRRNCabecalho(const cabecalho *c) { return c->proxRRN; }
+int getNroEstacoesCabecalho(const cabecalho *c) { return c->nroEstacoes; }
+int getNroParesEstacaoCabecalho(const cabecalho *c) { return c->nroParesEstacao; }
+
+// Seta dados específicos da struct
+void setStatus(cabecalho *c, char status) { c->status = status; }
+void setTopo(cabecalho *c, int topo) { c->topo = topo; }
+void setProxRRN(cabecalho *c, int proxRRN) { c->proxRRN = proxRRN; }
+void setNroEstacoes(cabecalho *c, int nroEstacoes) { c->nroEstacoes = nroEstacoes; }
+void setNroParesEstacao(cabecalho *c, int nroParesEstacao) { c->nroParesEstacao = nroParesEstacao; }
