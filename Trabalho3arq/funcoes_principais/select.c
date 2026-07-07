@@ -12,7 +12,7 @@
 /// @param nomeArqBin   Nome do arquivo binário.
 void SELECT_FROM(char *nomeArqBin)
 {
-    FILE *file = abre_verifica_rb(nomeArqBin);  // Abre e verifica o arquivo de dados
+    FILE *file = abre_verifica(nomeArqBin, "rb");  // Abre e verifica o arquivo de dados
     if (file == NULL) return;
 
     fseek(file, 17, SEEK_SET);  // Pula o cabeçalh
@@ -46,7 +46,7 @@ void SELECT_FROM(char *nomeArqBin)
 /// @param numero_buscas    Número de buscas a serem realizadas.
 void SELECT_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int numero_buscas)
 {
-    FILE *file = abre_verifica_rb(nomeArqBin);  // Avre e verifica o arquivo de dados
+    FILE *file = abre_verifica(nomeArqBin, "rb");  // Avre e verifica o arquivo de dados
     if (file == NULL) return;
 
     for (int b = 0; b < numero_buscas; b++)
@@ -82,7 +82,7 @@ void SELECT_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int numero_buscas)
         // Se for passado um arquivo de indexação e um codigo de estação
         // (primary key), fazemos a busca utilizando a arvore
         if (indice_codEstacao != -1 && nomeArqArvoreB != NULL) {
-            FILE *file_arvb = abre_verifica_rb(nomeArqArvoreB); // Abre e verifica o arquivio de indexação
+            FILE *file_arvb = abre_verifica(nomeArqArvoreB, "rb"); // Abre e verifica o arquivio de indexação
             if (file_arvb == NULL) continue; 
 
             int chave_procurada = atoi(valoresBusca[indice_codEstacao]);
@@ -147,8 +147,8 @@ void SELECT_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int numero_buscas)
 }
 
 void SELECT_ANINHADO(char *nomeArq, char *nome_campo1, char *nomeArq2, char *nome_campo2) {
-    FILE *file1 = abre_verifica_rb(nomeArq);
-    FILE *file2 = abre_verifica_rb(nomeArq2);
+    FILE *file1 = abre_verifica(nomeArq, "rb");
+    FILE *file2 = abre_verifica(nomeArq2, "rb");
     
     // Tratamento de erro na abertura dos arquivos
     if (file1 == NULL || file2 == NULL) {
@@ -209,9 +209,9 @@ void SELECT_ANINHADO(char *nomeArq, char *nome_campo1, char *nomeArq2, char *nom
 }
 
 void SELECT_LOOP_UNICO(char *nomeArq, char *nome_campo1, char *nomeArq2, char *nome_campo2, char *nomeArqIndice) {
-    FILE *file1 = abre_verifica_rb(nomeArq);
-    FILE *file2 = abre_verifica_rb(nomeArq2);
-    FILE *file_arvb = abre_verifica_rb(nomeArqIndice);
+    FILE *file1 = abre_verifica(nomeArq, "rb");
+    FILE *file2 = abre_verifica(nomeArq2, "rb");
+    FILE *file_arvb = abre_verifica(nomeArqIndice, "rb");
 
     if (file1 == NULL || file2 == NULL || file_arvb == NULL) {
         if (file1) fclose(file1);

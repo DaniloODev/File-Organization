@@ -37,81 +37,28 @@ int calcTam(char *str)
   return tam;
 }
 
-FILE *abre_verifica_r(char *nomeArq)
+/// @brief          Abre e verifica a integridade do arquivo
+/// @param nomeArq  Nome do arquivo a ser lido
+/// @param modo     Modo de leitura ex: r, rb, rb+, etc...
+/// @return         Retorna um ponteiro para o arquivo
+FILE *abre_verifica(char *nomeArq, char *modo)
 {
-  FILE *file = fopen(nomeArq, "r");
+  FILE *file = fopen(nomeArq, modo);
     if (file == NULL) {
         printf("Falha no processamento do arquivo.\n");
         return NULL;
     }
-  return file;
-}
 
-/// @brief            Abre o arquivo, e efetua a verificação se foi possível abrir e a respeito da integridade.
-/// @param nomeArqBin Nome do arquivo a ser manipulado.
-/// @return           Retorna o ponteiro do arquivo.
-FILE *abre_verifica_rb(char *nomeArqBin)
-{
-  FILE *file = fopen(nomeArqBin, "rb");
-    if (file == NULL) {
-        printf("Falha no processamento do arquivo.\n");
-        return NULL;
-    }
-    char status;
-    fread(&status, sizeof(char), 1, file);
-    if (status == '0') {  // Verifica a consistencia do arquivo
-        printf("Falha no processamento do arquivo.\n");
-        fclose(file);
-        return NULL;
-    }
-  return file;
-}
-
-/// @brief            Abre o arquivo, e efetua a verificação se foi possível abrir e a respeito da integridade.
-/// @param nomeArqBin Nome do arquivo a ser manipulado
-/// @return           Retorna o ponteiro do arquivo
-FILE *abre_verifica_rbplus(char *nomeArqBin)
-{
-    FILE *file = fopen(nomeArqBin, "rb+");
-    if (file == NULL){
-        printf("Falha no processamento do arquivo.\n");
-        return NULL;
+    if (strchr(modo, 'r') && strchr(modo, 'b')) {   // Caso necessite checar o cabeçalho
+        char status;                                // Ocorre somente no rb, rb+
+        if (fread(&status, sizeof(char), 1, file) != 1 || status == '0') {
+            printf("Falha no processamento do arquivo.\n");
+            fclose(file);
+            return NULL;
+        }
     }
 
-    char status;
-    fread(&status, sizeof(char), 1, file);
-    if (status == '0'){
-        printf("Falha no processamento do arquivo.\n");
-        fclose(file);
-        return NULL;
-    }
-  return file;
-}
-
-/// @brief            Abre o arquivo, e efetua a verificação se foi possível abrir e a respeito da integridade.
-/// @param nomeArqBin Nome do arquivo a ser manipulado.
-/// @return           Retorna o ponteiro do arquivo.
-FILE *abre_verifica_wb(char *nomeArqBin)
-{
-    FILE *file = fopen(nomeArqBin, "wb");
-    if (file == NULL){
-        printf("Falha no processamento do arquivo.\n");
-        return NULL;
-    }
-  return file;
-}
-
-/// @brief            Abre o arquivo, e efetua a verificação se foi possível abrir e a respeito da integridade.
-/// @param nomeArqBin Nome do arquivo a ser manipulado.
-/// @return           Retorna o ponteiro do arquivo.
-FILE *abre_verifica_wbplus(char *nomeArqBin)
-{
-    FILE *file = fopen(nomeArqBin, "wb+");
-    if (file == NULL){
-        printf("Falha no processamento do arquivo.\n");
-        return NULL;
-    }
-  return file;
+    return file;
 }
 
 /// @brief          Faz a leitura dos campos variados

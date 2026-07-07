@@ -9,7 +9,7 @@
 #include "../structs/cabecalho.h"
 #include "../structs/cabecalho_arvb.h"
 #include "../structs/arvore_b.h"
-#include "../funcoes_arvb/create_index.h"
+#include "create_index.h"
 #include "insert_into.h"
 
 /// @brief              Insere um novo registro, reaproveitando espaços logicamente
@@ -21,7 +21,7 @@
 void INSERT_INTO(char *nomeArqBin, char *nomeArqIndice, int n_insercoes)
 {
     // Abre e verifica a integridade do arquivo de dados
-    FILE *file = abre_verifica_rbplus(nomeArqBin);
+    FILE *file = abre_verifica(nomeArqBin, "rb+");
     if (file == NULL) return;
 
     FILE *fileIndex = NULL; // Cria um arquivo de indexação nulo
@@ -30,7 +30,7 @@ void INSERT_INTO(char *nomeArqBin, char *nomeArqIndice, int n_insercoes)
     // Se for um insert com arquivo de indexação
     // para não quebrar o insert antigo
     if (nomeArqIndice != NULL) {    // Abre e verifica a integridade do arquivo de index 
-        fileIndex = abre_verifica_rbplus(nomeArqIndice);
+        fileIndex = abre_verifica(nomeArqIndice, "rb+");
         if (fileIndex == NULL) {
             fclose(file);
             return;

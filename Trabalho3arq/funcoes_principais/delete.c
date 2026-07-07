@@ -17,7 +17,7 @@
 void DELETE_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int n_buscas)
 {
     // Abre e verifica a integridade do arquivo de dados
-    FILE *binFile = abre_verifica_rbplus(nomeArqBin);
+    FILE *binFile = abre_verifica(nomeArqBin, "rb+");
     if (binFile == NULL) return;
     
     // Carrega informações do cabeçalho do arquivo de dados
@@ -37,12 +37,13 @@ void DELETE_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int n_buscas)
     // Para não quebrar o delete antigo, fazemos a verificação
     // para ver se foi passado um arquivo de index ou não
     if (nomeArqArvoreB != NULL) {
-        file_arvb = abre_verifica_rbplus(nomeArqArvoreB);
+        file_arvb = abre_verifica(nomeArqArvoreB, "rb+");
         if (file_arvb != NULL) {
             cab_arvb = leCabecalhoArvb(file_arvb);
             setStatusArvb(cab_arvb, '0');
             escreveCabecalhoArvb(file_arvb, cab_arvb);
         }
+        else return;
     }
 
     for (int b = 0; b < n_buscas; b++)

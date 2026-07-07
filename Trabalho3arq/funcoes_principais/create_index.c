@@ -5,20 +5,18 @@
 #include "../aux/auxiliares.h"
 #include "../structs/dados.h"
 #include "../fornecidas/fornecidas.h"
+#include "create_index.h"
 
 /// @brief Cria um índice para uma árvore-B a partir de um arquivo de dados.
 /// @param nome_arq_dados  Nome do arquivo de dados.
 /// @param nome_arq_indice Nome do arquivo de índice.
 void criar_indice_arvore_b(char *nome_arq_dados, char *nome_arq_indice)
 {
-    FILE *arq_dados = abre_verifica_rb(nome_arq_dados);         // Abre e verifica o arquivo de dados
+    FILE *arq_dados = abre_verifica(nome_arq_dados, "rb");         // Abre e verifica o arquivo de dados
     if (arq_dados == NULL) return;
 
-    FILE *arq_indice = abre_verifica_wbplus(nome_arq_indice);   // Cria e verifica o arquivo de index
-    if (arq_indice == NULL) {
-        fclose(arq_dados);
-        return;
-    }
+    FILE *arq_indice = abre_verifica(nome_arq_indice, "wb+");   // Cria e verifica o arquivo de index
+    if (arq_indice == NULL) { fclose(arq_dados); return; }
 
     // Inicializa e escreve cabeçalho
     cabecalho_arvb *cab = inicializaCabecalhoArvb();

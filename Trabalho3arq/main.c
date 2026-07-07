@@ -11,7 +11,8 @@
 #include "./funcoes_principais/delete.h"
 #include "./funcoes_principais/insert_into.h"
 #include "./structs/arvore_b.h"
-#include "./funcoes_arvb/create_index.h"
+#include "./funcoes_principais/create_index.h"
+#include "./funcoes_principais/sort.h"
 
 int main()
 {
@@ -77,6 +78,16 @@ int main()
         case 12:
             scanf("%s %s %s %s %s", arqBin, nomeCampo1, arqBin2, nomeCampo2, arqIndice);
             SELECT_LOOP_UNICO(arqBin, nomeCampo1, arqBin2, nomeCampo2, arqIndice);
+            break;
+        case 13:
+            char arqEntrada[30], campoOrd[30], arqSaida[30];
+            scanf("%s %s %s", arqEntrada, campoOrd, arqSaida);
+            ordena_arquivo_ram(arqEntrada, campoOrd, arqSaida);
+            break;
+        case 14:
+            char arqEntrada1[30], campo1[30], arqEntrada2[30], campo2[30];
+            scanf("%s %s %s %s", arqEntrada1, campo1, arqEntrada2, campo2);
+            SELECT_SORT_MERGE(arqEntrada1, campo1, arqEntrada2, campo2);
             break;
         default:
             break;

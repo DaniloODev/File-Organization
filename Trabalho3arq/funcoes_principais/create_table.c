@@ -12,10 +12,10 @@
 /// @param arqBin   Nome do arquivo binário que será gerado.
 void CREATE_TABLE(char *nomeArq, char *arqBin)
 {
-  FILE *file = abre_verifica_r(nomeArq);
+  FILE *file = abre_verifica(nomeArq, "r");
   if (file == NULL) return;
 
-  FILE *binFile = abre_verifica_wbplus(arqBin);
+  FILE *binFile = abre_verifica(arqBin, "wb+");
   if (binFile == NULL){ fclose(file); return; }
 
   char ignore[1024];

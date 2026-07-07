@@ -13,9 +13,8 @@ AUX = ./aux/auxiliares.c ./aux/calcula.c
 
 PRINCIPAL = ./funcoes_principais/select.c ./funcoes_principais/create_table.c \
             ./funcoes_principais/update.c ./funcoes_principais/delete.c \
-            ./funcoes_principais/insert_into.c
-
-ARVORE_B = ./funcoes_arvb/create_index.c
+            ./funcoes_principais/insert_into.c ./funcoes_principais/sort.c \
+			./funcoes_principais/create_index.c
 
 STCTVRF = ./structs/dados.c ./structs/cabecalho.c ./structs/cabecalho_arvb.c ./structs/arvore_b.c
 
