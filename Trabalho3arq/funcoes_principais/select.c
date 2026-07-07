@@ -111,6 +111,7 @@ void SELECT_WHERE(char *nomeArqBin, char *nomeArqArvoreB, int numero_buscas)
                 printf("Registro inexistente.\n");
             }
             
+            finalizaCabecalhoArvb(cab_arvb);
             fclose(file_arvb);
         } else {
             // Busca sequencial, caso não tenha sido passado um arquivo de index
@@ -206,6 +207,7 @@ void SELECT_ANINHADO(char *nomeArq, char *nome_campo1, char *nomeArq2, char *nom
 
     fclose(file1);
     fclose(file2);
+    
 }
 
 void SELECT_LOOP_UNICO(char *nomeArq, char *nome_campo1, char *nomeArq2, char *nome_campo2, char *nomeArqIndice) {
@@ -267,4 +269,6 @@ void SELECT_LOOP_UNICO(char *nomeArq, char *nome_campo1, char *nomeArq2, char *n
     fclose(file1);
     fclose(file2);
     fclose(file_arvb);
+
+    finalizaCabecalhoArvb(cab_arvb);
 }

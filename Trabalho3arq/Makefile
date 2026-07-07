@@ -20,10 +20,13 @@ STCTVRF = ./structs/dados.c ./structs/cabecalho.c ./structs/cabecalho_arvb.c ./s
 
 # Regra principal
 all:
-	$(CC) $(FLAGS) -o programaTrab $(MAIN) $(FORNECIDAS) $(AUX) $(PRINCIPAL) $(ARVORE_B) $(STCTVRF) $(LIBS)
+	$(CC) $(FLAGS) -o programaTrab $(MAIN) $(FORNECIDAS) $(AUX) $(PRINCIPAL) $(STCTVRF) $(LIBS)
 
 run:
 	./programaTrab
+
+valgrind:
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./programaTrab
 
 clean:
 	rm -f programaTrab *.bin
